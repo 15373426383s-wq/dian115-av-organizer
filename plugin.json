@@ -2,7 +2,7 @@
   "schema_version": 3,
   "id": "local.av-organizer",
   "name": "番号整理",
-  "version": "1.4.4",
+  "version": "1.4.6",
   "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。",
   "author": "swgzy",
   "requires": {
@@ -23,7 +23,7 @@
       "handler": "run",
       "recover": "recover",
       "timeout_seconds": 21600,
-      "interval_seconds": 1800,
+      "interval_seconds": 300,
       "title": "整理收件目录"
     },
     {
@@ -119,7 +119,9 @@
       "POST /api/emby-control/items/{id}/refresh",
       "POST /api/extensions/v3/local.av-organizer/data/sqlite",
       "POST /api/extensions/v3/local.av-organizer/media/nfo",
-      "GET /api/cache/magnet/changes"
+      "GET /api/cache/magnet/changes",
+      "POST /api/local-files/move",
+      "POST /api/local-files/rename"
     ],
     "sites": [
       "用户配置的 JavBus / JavDB / FC2 地址",

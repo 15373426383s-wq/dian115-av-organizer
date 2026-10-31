@@ -71,7 +71,20 @@ async function runDirectory(ctx, input, raw) {
   }
 
   await ctx.task.update({ stage: 'scan', message: '扫描收件目录' })
-  const files = await listInbox(ctx, settings)
+  let files = await listInbox(ctx, settings)
+  // 刚入库的视频会被 stable_seconds 挡在稳定窗口外。目录监听只在"有变化"时触发一次，
+  // 那时还太新的文件不会再有第二次机会，所以这里等到它们稳定后再扫一遍。
+  if (!files.videos.length) {
+    const fresh = files.all.filter(item => isVideoFile(item.name) && splitExtension(item.name).ext !== 'strm' &&
+      Number.isFinite(Date.parse(item.modified || '')) && Date.now() - Date.parse(item.modified) < settings.stable_seconds * 1000)
+    if (fresh.length) {
+      const newest = Math.max(...fresh.map(item => Date.parse(item.modified)))
+      const wait = Math.min(settings.stable_seconds * 1000, Math.max(3000, settings.stable_seconds * 1000 - (Date.now() - newest) + 2000))
+      await ctx.task.log(`收件目录里的 ${fresh.length} 个视频还在写入窗口内，等 ${Math.round(wait / 1000)} 秒后再整理`)
+      await ctx.sleep(wait)
+      files = await listInbox(ctx, settings)
+    }
+  }
   if(settings.cleanup_source?.enabled)await quarantineFiles(ctx,files.all.filter(f=>!files.videos.includes(f)),settings)
   prunePending(state, files, settings)
   const controls = await loadControls(ctx, state)
@@ -216,7 +229,7 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
 
   if(settings.overwrite_video && ['hardlink','symlink'].includes(settings.transfer_mode) && await exists(ctx,plan.videoTarget)) throw new Error('链接模式不覆盖已有文件')
   if (!plan.inPlace) runtime.reserved.add(plan.videoTarget)
-  runtime.inflight.set(file.path, { path: file.path, videoTarget: plan.videoTarget, inPlace: Boolean(plan.inPlace), retained: settings.transfer_mode !== 'move', transfer_mode: settings.transfer_mode, expected_size: file.size, signature: signature(file), number: meta.number, title: meta.title })
+  runtime.inflight.set(file.path, { path: file.path, videoTarget: plan.videoTarget, inPlace: Boolean(plan.inPlace), retained: settings.transfer_mode !== 'move', transfer_mode: settings.transfer_mode, expected_size: Number(file.size) > 0 && Number(file.size) < 2147483648 ? Number(file.size) : 0, signature: signature(file), number: meta.number, title: meta.title })
   await runtime.checkpoint()
   try {
     return await finishFile(ctx, env, file, siblings, state, settings, { plan, parsed, meta, result, started, logs, log, transferComplete: async () => {
@@ -230,48 +243,71 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
 
 // 视频搬运。CD2 挂载上宿主的 move 会直接失败（"CD2操作结果未确认: 移动源身份已变化"），
 // 而同一卷内的 copy 是云端秒级复制并可用，所以移动模式在 CD2 上改为「复制 → 校验 → 删除源」。
-async function transferVideo(ctx, file, plan, settings, log) {
+async function isCd2PathOnHost(ctx, path) {
+  try {
+    const info = await ctx.files.call({ operation: 'stat', path })
+    return info && info.backend === 'cd2'
+  } catch { return false }
+}
+
+async function confirmLanded(ctx, path) {
+  try {
+    const info = await ctx.files.call({ operation: 'stat', path })
+    return info && info.path ? info : null
+  } catch { return null }
+}
+
+// CD2 挂载内的 move 在宿主上会报「移动源身份已变化」（copy/rename/remove 都正常），
+// 所以 CD2 内统一按 copy → 校验落地 → 删源 处理，避免搬到一半丢文件。
+async function cd2Move(ctx, source, destination, overwrite, log) {
+  const existing = await confirmLanded(ctx, destination)
+  if (existing) {
+    if (!overwrite) throw new Error(`目标已存在：${destination}`)
+    await ctx.files.call({ operation: 'remove', path: destination, progress: false })
+  }
+  await ctx.files.call({ operation: 'copy', path: source, destination, overwrite, progress: false })
+  if (!await confirmLanded(ctx, destination)) throw new Error(`复制未生效：${destination}`)
+  await ctx.files.call({ operation: 'remove', path: source, progress: false })
+  await log('CD2 不支持移动，已改为复制后删除源文件')
+}
+
+async function transferVideo(ctx, file, plan, settings, log, onCd2) {
   const mode = settings.transfer_mode || 'move'
   const overwrite = Boolean(settings.overwrite_video)
   if (mode !== 'move') {
     await ctx.files.call({ operation: mode, path: file.path, destination: plan.videoTarget, overwrite })
     return
   }
-  if (!await isCd2PathOnHost(ctx, file.path)) {
+  if (!onCd2) {
     await ctx.files.call({ operation: 'move', path: file.path, destination: plan.videoTarget, overwrite })
     return
   }
-  await ctx.files.call({ operation: 'copy', path: file.path, destination: plan.videoTarget, overwrite })
-  if (!await exists(ctx, plan.videoTarget)) throw new Error('CD2 复制未生效：目标文件没有出现')
-  await ctx.files.call({ operation: 'remove', path: file.path })
-  await log('CD2 挂载不支持移动，已改为复制后删除源文件')
-}
-
-// 宿主 stat 会给出 backend，用它判断路径是不是挂在 CD2 上。
-async function isCd2PathOnHost(ctx, path) {
-  try {
-    const info = await ctx.files.call({ operation: 'stat', path })
-    return info?.backend === 'cd2'
-  } catch { return false }
+  await cd2Move(ctx, file.path, plan.videoTarget, overwrite, log)
 }
 
 async function finishFile(ctx, env, file, siblings, state, settings, { plan, parsed, meta, result, started, logs, log, transferComplete }) {
   // 先写元数据，再移动视频：STRM 模式下宿主生成 .strm 并刷新 Emby 时，元数据已经就位。
+  // 源文件一定存在，用它判断是否 CD2；目标目录这时可能还没建，stat 会失败。
+  const onCd2 = await isCd2PathOnHost(ctx, file.path)
   const written = settings.action_mode === 'rename_only'
     ? { files: {}, cover: '' }
-    : await writeMetadata(ctx, env, meta, parsed, plan, settings, log)
+    : await writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
   const subtitles = []
   if (!plan.inPlace) {
     for (const subtitle of subtitleTargets(file.name, siblings, plan, settings)) {
       try {
-        await ctx.files.call({ operation: settings.transfer_mode === 'move' ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video) })
+        if (settings.transfer_mode === 'move' && await isCd2PathOnHost(ctx, subtitle.source)) {
+          await cd2Move(ctx, subtitle.source, subtitle.target, Boolean(settings.overwrite_video), log)
+        } else {
+          await ctx.files.call({ operation: settings.transfer_mode === 'move' ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video) })
+        }
         subtitles.push(subtitle.target)
       } catch (error) {
         await log(`字幕移动失败 ${basename(subtitle.source)}：${error.message || error}`)
       }
     }
     await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
-    await transferVideo(ctx, file, plan, settings, log)
+    await transferVideo(ctx, file, plan, settings, log, onCd2)
     await transferComplete()
     if (settings.transfer_mode !== 'move') state.done[file.path] = signature(file)
     if (settings.delete_empty && settings.transfer_mode === 'move') await removeEmptyParents(ctx, dirname(file.path), settings.inbox)
@@ -306,7 +342,14 @@ async function identifyNumberOnly(file, parent, settings, manualNumber) {
   return { ok: true, parsed, meta: { number: parsed.number, actors: [], genres: [], sources: [] }, method: manualNumber ? 'manual' : 'exact', score: 100 }
 }
 
-async function writeMetadata(ctx, env, meta, parsed, plan, settings, log) {
+async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2) {
+  // 目标在 CD2 挂载上时，宿主执行「插件文件 → CD2」的复制会把 Linux 路径当成 Windows
+  // 相对路径（写到宿主工作目录），返回成功但文件并不在目标目录；搬图片时的 move 还会
+  // 让宿主直接中断脚本。用源文件（一定存在）判断后端，目标目录此时可能还没建。
+  if (onCd2) {
+    await log('目标在 CD2 挂载上，宿主无法把插件生成的文件写入该路径，本次只整理视频（NFO/海报/剧照跳过）')
+    return { files: {}, cover: '' }
+  }
   const staging = `staging/${fileKey(plan.videoTarget)}`
   // 入口先抓住 files 引用：清理阶段直接用它，避免依赖作用域里的 ctx。
   const filesApi = ctx.files
@@ -751,7 +794,7 @@ async function organizeExtra(ctx,file,parsed,state,settings,runtime,log) {
   const target=joinPath(dir,`${parsed.number}-extra${parsed.extra.index}.${splitExtension(file.name).ext}`)
   return runtime.lock(target,async()=>{
     if(await exists(ctx,target))return {status:'skipped',number:parsed.number,target}
-    runtime.inflight.set(file.path,{path:file.path,videoTarget:target,retained:settings.transfer_mode!=='move',transfer_mode:settings.transfer_mode,expected_size:file.size,signature:signature(file),number:parsed.number})
+    runtime.inflight.set(file.path,{path:file.path,videoTarget:target,retained:settings.transfer_mode!=='move',transfer_mode:settings.transfer_mode,expected_size:Number(file.size) < 2147483648 ? Number(file.size) : 0,signature:signature(file),number:parsed.number})
     await runtime.checkpoint()
     try{
       await ctx.files.call({operation:'mkdir',path:dir})
