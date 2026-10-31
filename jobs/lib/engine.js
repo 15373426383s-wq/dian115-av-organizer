@@ -208,8 +208,16 @@ export function isChallengePage(response) {
   return /^(just a moment|attention required|checking your browser)/i.test(title.trim()) || /<form[^>]+id=["']challenge-form["']/i.test(body) || (response.status === 403 && /cloudflare|cf-ray|cf-chl-/i.test(body))
 }
 
+// 默认请求头：不少站点（例如 JavBus）在缺少 Accept-Language 时会把请求当成机器人，
+// 直接 302 到 driver-verify 答题页；浏览器一定会带这两个头，所以默认补上。
+// 来源规则或调用方显式给出的同名头优先级更高。
+const DEFAULT_LANGUAGE = 'zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7'
+const HTML_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+
 async function request(env, source, url, options = {}) {
-  const headers = Object.fromEntries(Object.entries({ ...source.headers, ...options.headers }).map(([k, v]) => [k, [fillTemplate(v, options.vars || {}, true)]]))
+  // JSON 接口不写 Accept，避免个别接口按 Accept 协商内容类型。
+  const defaults = { 'Accept-Language': DEFAULT_LANGUAGE, ...((source.type || 'html') === 'json' ? {} : { Accept: HTML_ACCEPT }) }
+  const headers = Object.fromEntries(Object.entries({ ...defaults, ...source.headers, ...options.headers }).map(([k, v]) => [k, [fillTemplate(v, options.vars || {}, true)]]))
   if (options.referer !== false) headers.Referer = [options.referer || new URL(url).origin + '/']
   const init = { headers, ...(source.retry !== undefined ? { retry: source.retry } : {}), ...(source.timeout_seconds ? { timeout_seconds: source.timeout_seconds } : {}), ...(source.proxy ? { proxy: source.proxy } : {}) }
   if (options.method) init.method = options.method

@@ -411,3 +411,22 @@ html('JavBus 年龄确认后的人工答题明确停止，不发送答案',async
   await assert.rejects(runSource(e,preset('javbus'),'HEYZO-1048'),/人工答题验证/)
   assert.equal(e.calls.length,1);assert.notEqual(e.calls[0].init.method,'POST')
 })
+
+test('默认带 Accept-Language，避免被站点判成机器人（JavBus 会 302 到答题页）', async () => {
+  // 404 让引擎在解析前返回，只为看请求头
+  const e = env([[/javbus\.com\/SSIS-001/, { status: 404, body: 'not found' }]])
+  await runSource(e, { ...preset('javbus'), detail: { url: 'https://www.javbus.com/SSIS-001' } }, 'SSIS-001')
+  const headers = e.calls[0].init.headers
+  assert.match(String(headers['Accept-Language'][0]), /zh-CN/)
+  assert.match(String(headers.Accept[0]), /text\/html/)
+  // 仍然带 Referer
+  assert.equal(String(headers.Referer[0]), 'https://www.javbus.com/')
+})
+
+test('来源规则可覆盖默认请求头', async () => {
+  const e = env([[/javbus\.com\/SSIS-001/, { body: { title: '标题' } }]])
+  await runSource(e, { ...preset('javbus'), type: 'json', headers: { 'Accept-Language': 'ja-JP' }, detail: { url: 'https://www.javbus.com/SSIS-001' } }, 'SSIS-001')
+  // JSON 接口默认不写 Accept，但语言头仍在
+  assert.equal(e.calls[0].init.headers.Accept, undefined)
+  assert.equal(String(e.calls[0].init.headers['Accept-Language'][0]), 'ja-JP')
+})
