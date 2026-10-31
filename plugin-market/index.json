@@ -9,11 +9,11 @@
     {
       "id": "local.av-organizer",
       "name": "番号整理",
-      "version": "1.4.0",
-      "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。swgzy 维护版（基于 1.3.0，借鉴 MDC-NGi）。",
+      "version": "1.4.1",
+      "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选（FlareSolverr 直连兜底）、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。swgzy 维护版（基于 1.3.0，借鉴 MDC-NGi）。",
       "author": "swgzy",
-      "source_url": "https://github.com/15373426383s-wq/dian115-av-organizer/releases/download/v1.4.0/av-organizer-1.4.0.dian115p",
-      "sha256": "b6c4973f70e5c7e7d6a755ec23022533a7e178c59a5fd627cc4cc9b5ba4b8fcd",
+      "source_url": "https://github.com/15373426383s-wq/dian115-av-organizer/releases/download/v1.4.1/av-organizer-1.4.1.dian115p",
+      "sha256": "aab256351d52c1ba03adf3abd9e7ef537711c8d9712761b2e43a8b9d5bb774f8",
       "delivery": "source",
       "declared_usage": {
         "apis": [

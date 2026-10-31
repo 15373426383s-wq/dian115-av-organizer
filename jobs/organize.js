@@ -17,6 +17,7 @@ import { applyMappings } from '../ui/lib/mapping.js'
 import { identify, parseWithSettings, kindOf } from './lib/identify.js'
 import { scrape } from './lib/scrape.js'
 import { isChallengePage } from './lib/engine.js'
+import { solveChallenge } from './lib/challenge.js'
 import { sourcePlan, prepareSourceCookies } from './lib/sources.js'
 import { normalizeSettings, resolveDestination, planFile, subtitleTargets, parentNameFor } from './lib/plan.js'
 import { mapPool, createThrottle, keyedLock, serial } from './lib/pool.js'
@@ -665,7 +666,7 @@ export async function scrapeEnv(ctx, settings, extraDefs = []) {
         try {
           const response = await ctx.http.request({ url, session, timeout_seconds: settings.request_timeout || 30, ...(settings.proxy ? { proxy: settings.proxy } : {}), ...requestOptions })
           if (settings.flaresolverr_endpoint && (!options.method || options.method === 'GET') && isChallengePage(response) && [200, 403, 503].includes(response.status)) {
-            return await ctx.http.render({ endpoint: settings.flaresolverr_endpoint, url, session, timeout_seconds: 120 })
+            return await solveChallenge(ctx, settings, url, session, response, message => ctx.task?.log?.(message))
           }
           if (response.status < 500 && response.status !== 429) return response
           last = new Error(`HTTP ${response.status}`)
