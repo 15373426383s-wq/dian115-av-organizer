@@ -37,5 +37,13 @@ export const DEFAULT_SETTINGS = {
 }
 
 export function withDefaults(saved) {
-  return { ...DEFAULT_SETTINGS, ...(saved || {}) }
+  const out = { ...DEFAULT_SETTINGS, ...(saved || {}) }
+  // 嵌套对象逐键补齐：升级后新增的开关（例如 translation.cache）在旧设置里也能取到默认值，
+  // 页面显示和后台取值保持一致。数组仍以用户保存的为准。
+  for (const [key, base] of Object.entries(DEFAULT_SETTINGS)) {
+    if (!base || typeof base !== 'object' || Array.isArray(base)) continue
+    const value = out[key]
+    if (value && typeof value === 'object' && !Array.isArray(value)) out[key] = { ...base, ...value }
+  }
+  return out
 }

@@ -13,7 +13,7 @@
       "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。swgzy 维护版（基于 1.3.0，借鉴 MDC-NGi）。",
       "author": "swgzy",
       "source_url": "https://github.com/15373426383s-wq/dian115-av-organizer/releases/download/v1.4.0/av-organizer-1.4.0.dian115p",
-      "sha256": "af7dad0a46e91d964721cd0c81a1fd83b52bb59390ebcad4cf4c0677047d390a",
+      "sha256": "b6c4973f70e5c7e7d6a755ec23022533a7e178c59a5fd627cc4cc9b5ba4b8fcd",
       "delivery": "source",
       "declared_usage": {
         "apis": [

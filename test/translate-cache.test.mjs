@@ -98,3 +98,12 @@ test('超过上限淘汰最旧条目，清空可一键回收', async () => {
   assert.equal(removed, TRANSLATION_CACHE_LIMIT)
   assert.equal((await translationCacheStats(ctx)).entries, 0)
 })
+
+test('旧设置也能拿到新增的嵌套默认值（translation.cache）', async () => {
+  const { withDefaults } = await import('../ui/lib/defaults.js')
+  const merged = withDefaults({ translation: { enabled: true, fields: ['title'] } })
+  assert.equal(merged.translation.cache, true)
+  assert.equal(merged.translation.enabled, true)
+  assert.deepEqual(merged.translation.fields, ['title'])
+  assert.equal(withDefaults({ translation: { cache: false } }).translation.cache, false)
+})
