@@ -109,16 +109,44 @@ function chips(el, values, emptyText) {
 }
 
 function openMetadataEditor(ui,store,item,onChanged){
-  const {el,field,button}=ui,d=ui.dialog(`编辑 ${item.number}`,{drawer:true}),edit={}
+  const {el,field,button}=ui,d=ui.dialog(`编辑 ${item.number}`,{drawer:true}),edit={},controls={}
   for(const [key,label] of Object.entries({title:'标题',plot:'简介',actors:'演员（逗号分隔）',genres:'类型（逗号分隔）',studio:'制作商',label:'发行商',series:'系列',director:'导演',release_date:'发行日期',runtime:'时长'})){
     const array=['actors','genres'].includes(key),node=el(key==='plot'?'textarea':'input',{class:key==='plot'?'avo-textarea':'avo-input',value:array?(item[key] || []).join(','):item[key] || ''})
     node.addEventListener('input',()=>{edit[key]=array?node.value.split(/[,，]/).map(v=>v.trim()).filter(Boolean):node.value})
+    controls[key]=node
     d.body.append(field(label,node))
   }
-  if(item.source_variants?.length){
-    const choice=el('select',{class:'avo-select'},...item.source_variants.map((v,i)=>el('option',{value:String(i)},v.source)))
-    const preview=el('pre',{class:'avo-pre'});choice.addEventListener('change',()=>{preview.textContent=JSON.stringify(item.source_variants[Number(choice.value)],null,2)});preview.textContent=JSON.stringify(item.source_variants[0],null,2)
-    d.body.append(field('来源原始资料对比',choice),preview)
+  // 多来源精选：每个来源一张卡，一眼看清各家标题/演员/日期，点一下就换成那家的资料。
+  if(item.source_variants?.length>1){
+    const list=el('div',{class:'avo-stack'}),status=el('div',{class:'avo-hint'})
+    const adopt=variant=>{
+      for(const [key,value] of Object.entries({title:variant.title,plot:variant.plot,actors:variant.actors,genres:variant.genres,release_date:variant.release_date,studio:variant.studio,series:variant.series,director:variant.director})){
+        if(value===undefined||value===null||value==='')continue
+        const control=controls[key];if(!control)continue
+        if(Array.isArray(value)){control.value=value.join(',');edit[key]=[...value]}
+        else{control.value=String(value);edit[key]=String(value)}
+      }
+      const cover=variant.poster || variant.cover
+      if(cover && /^https?:\/\//i.test(cover)){edit.poster=variant.poster || '';edit.cover=variant.cover || cover}
+      status.textContent=`已填入「${sourceName(variant.source,store.settings)}」的资料，确认后保存即可写入 NFO`
+      for(const node of list.children)node.classList.toggle('picked',node.dataset.source===variant.source)
+      ui.toast('已填入该来源的资料','success',2200)
+    }
+    list.replaceChildren(...item.source_variants.map(variant=>{
+      const thumb=/^https?:\/\//i.test(variant.cover || '')?el('img',{src:variant.cover,alt:variant.source,loading:'lazy',style:{width:'44px',height:'62px',objectFit:'cover',borderRadius:'8px',flex:'0 0 auto'}}):null
+      return el('div',{class:'avo-card',dataset:{source:variant.source},style:{padding:'10px 12px'}},
+        el('div',{class:'avo-row between',style:{gap:'8px',alignItems:'flex-start'}},
+          el('div',{class:'avo-row',style:{gap:'8px',alignItems:'flex-start'}},thumb,
+            el('div',{class:'avo-stack',style:{gap:'2px'}},
+              el('div',{class:'avo-row',style:{gap:'6px',flexWrap:'wrap'}},el('span',{class:'avo-badge'},sourceName(variant.source,store.settings)),variant.source===item.source?el('span',{class:'avo-badge success'},'当前采用'):null),
+              el('div',{style:{fontSize:'13px',lineHeight:'1.45'}},variant.title||'（无标题）'),
+              el('div',{class:'avo-meta'},variant.actors?.length?el('span',{},'演员 ',variant.actors.slice(0,3).join('、')):null,variant.release_date?el('span',{},variant.release_date):null,variant.studio?el('span',{},variant.studio):null))),
+          button('采用此来源',{size:'sm',icon:'check',onClick:()=>adopt(variant)})))
+    }))
+    const raw=el('details',{},el('summary',{},'查看来源原始字段'),el('pre',{class:'avo-pre',style:{maxHeight:'220px',overflow:'auto'}},JSON.stringify(item.source_variants,null,2)))
+    d.body.append(el('div',{class:'avo-stack',style:{gap:'8px'}},el('div',{class:'avo-section-title'},'多来源资料精选'),status,list,raw))
+  }else if(item.source_variants?.length){
+    d.body.append(field('来源原始资料',el('pre',{class:'avo-pre'},JSON.stringify(item.source_variants[0],null,2))))
   }
   const submit=async(relocate)=>{
     const input=relocate?{paths:[item.target],scan_root:'/',overrides:{reuse_metadata:true,existing_files:item.files,manual_number:item.number,manual_metadata:{...item,...edit,cover:item.cover_remote || '',poster:item.poster || ''}}}:{rescrape:[item.id],rescrape_only:true,reuse_metadata:true,metadata:edit}

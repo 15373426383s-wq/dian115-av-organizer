@@ -7,7 +7,7 @@ export const ADVANCED_DEFAULTS = {
   category_rules: [], resolution_mode: 'filename', required_fields: [], required_images: [],
   image_options: { poster: true, thumb: false, fanart: true, crop: 'right', ratio: 2 / 3, quality: 92, max_width: 1200, crop_by_kind: {} },
   watermark: { enabled: false, pack_id: '', targets: ['poster'], scale: .18, corner: 'top-left', direction: 'stack', gap: 8, x: 8, y: 8, rules: [] },
-  translation: { enabled: false, fields: ['title', 'plot'], language: '简体中文', instruction: '', provider_id: '', model: '', required: false },
+  translation: { enabled: false, fields: ['title', 'plot'], language: '简体中文', instruction: '', provider_id: '', model: '', required: false, cache: true },
   nfo: { fields: {}, set: 'series', tagline: '', rating: '', country: '', mpaa: '', extra_tags: ['subtitle', 'mosaic'], extra_genres: [] },
   download_trailer: false, trailer_timeout: 120, subtitle_library: '', webhooks: [],
   request_timeout: 30, source_retry: 0, field_blocklist: {}, category_source_order: {}, flaresolverr_endpoint: '', watch_realtime: true,

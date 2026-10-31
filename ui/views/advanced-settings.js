@@ -3,6 +3,19 @@ import {pathControl, embyControls, aiControls, hostSelect, hostResource} from '.
 import {renderConfigTools} from './config-tools.js'
 import { advancedSettings } from '../lib/advanced.js'
 import { HOST, processArtwork } from '../../jobs/lib/enrich.js'
+import { translationCacheStats, clearTranslationCache } from '../../jobs/lib/translate-cache.js'
+
+// 本地翻译缓存可以随时查看与清空：换了语言、模型或发现译文过时就重来一遍。
+function clearTranslationButton(ui, ctx) {
+  return ui.button('清空翻译缓存', { size: 'sm', icon: 'trash', onClick: async () => {
+    const stats = await translationCacheStats(ctx)
+    if (!stats.entries) { ui.toast('翻译缓存还是空的', 'info', 2600); return }
+    const ok = await ui.confirm('清空翻译缓存', `将删除 ${stats.entries} 条本地译文缓存（上限 ${stats.limit} 条），下次整理会重新翻译。`, '清空')
+    if (!ok) return
+    const removed = await clearTranslationCache(ctx)
+    ui.toast(`已清空 ${removed} 条翻译缓存`, 'success')
+  } })
+}
 
 export function renderAdvancedSettings(ui, ctx, draft, set) {
   const { el, field, button, switchInput } = ui
@@ -97,6 +110,7 @@ export function renderAdvancedSettings(ui, ctx, draft, set) {
     toggle('metadata_options.trim_plot','简介合并多余空行'),toggle('metadata_options.strict_on_source_error','仅有来源失败时检查必需元数据'),toggle('resolution_filename_first','文件名有分辨率时免去 FFP 探测'),toggle('nfo.original_plot','保留原始简介字段'), toggle('translation.enabled', '翻译元数据'),
     grid(select('translation.language','目标语言',[['简体中文','简体中文'],['繁體中文','繁体中文'],['日本語','日语'],['English','英语'],['한국어','韩语']]),...aiControls(ui,ctx,{provider:draft.translation.provider_id,model:draft.translation.model,onProvider:value=>put('translation.provider_id',value),onModel:value=>put('translation.model',value)}),text('translation.instruction', '补充翻译要求')),
     multi('translation.fields', '翻译字段', [['title', '标题'], ['plot', '简介'], ['series', '系列'], ['genres', '类型'], ['actors', '演员']]), toggle('translation.required', '翻译失败时暂停该文件整理'),
+    el('div', { class: 'avo-row' }, toggle('translation.cache', '复用本地翻译缓存（同一番号不重复消耗 AI）'), clearTranslationButton(ui, ctx)),
     multi('required_fields', '必需元数据', [['title', '标题'], ['actors', '演员'], ['plot', '简介'], ['release_date', '日期'], ['studio', '制作商']]),
     multi('required_images', '必需图片', [['poster', '海报'], ['thumb', '缩略图'], ['fanart', '背景图']]),
     grid(text('request_timeout', '来源请求超时（秒）', 'number'), text('source_retry', '来源失败重试（0–3）', 'number'), text('flaresolverr_endpoint', 'FlareSolverr 地址（可选）')), field('字段禁用来源',sourceRules(ui,draft,{value:draft.field_blocklist,ordered:false,onChange:value=>set('field_blocklist',value)})),

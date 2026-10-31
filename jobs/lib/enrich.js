@@ -1,5 +1,6 @@
 import { templateVariables } from '../../ui/lib/naming.js'
 import { translateFields, applyDictionary, editMetadata } from './metadata.js'
+import { translateWithCache } from './translate-cache.js'
 import { renderText, evaluateCondition } from '../../ui/lib/templates.js'
 export const HOST = '/api/extensions/v3/local.av-organizer'
 
@@ -28,14 +29,16 @@ export async function enrichMetadata(ctx, source, parsed, file, settings, log) {
     const fields = Object.fromEntries((config.fields || ['title', 'plot']).filter(k => ['title', 'plot', 'series', 'studio', 'genres', 'actors'].includes(k) && meta[k]?.length).map(k => [k, meta[k]]))
     if (Object.keys(fields).length) {
       try {
-        const r = await translateFields(ctx,meta,fields,settings)
+        // 先在本地翻译缓存里找：同一番号同一原文不再重复消耗 AI 额度。
+        const r = await translateWithCache(ctx, meta, fields, settings, () => translateFields(ctx,meta,fields,settings), log)
         const output = r.values
         for (const [key, value] of Object.entries(fields)) {
           if (Array.isArray(value) ? !Array.isArray(output[key]) || !output[key].every(v => typeof v === 'string') : typeof output[key] !== 'string' || !output[key].trim()) throw new Error(`AI 返回的 ${key} 格式不正确`)
         }
         meta.original_title ||= meta.title; meta.original_plot ||= meta.plot
         Object.assign(meta, Object.fromEntries(Object.keys(fields).map(k => [k, output[k]])))
-        meta.translation_model = r.model; await log(`已翻译 ${Object.keys(fields).join('、')}`)
+        meta.translation_model = r.model
+        if (!r.cached) await log(`已翻译 ${Object.keys(fields).join('、')}`)
       } catch (e) { if (config.required) throw e; await log(`翻译失败，保留原文：${e.message || e}`) }
     }
   }
