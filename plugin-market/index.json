@@ -1,0 +1,34 @@
+{
+  "schema_version": 3,
+  "repository": {
+    "id": "swgzy-dian115-plugins",
+    "name": "swgzy 的 DIAN115 插件",
+    "homepage": "https://github.com/15373426383s-wq/dian115-av-organizer"
+  },
+  "plugins": [
+    {
+      "id": "local.av-organizer",
+      "name": "番号整理",
+      "version": "1.3.1",
+      "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、AI 翻译、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。swgzy 维护版（基于 1.3.0）。",
+      "author": "swgzy",
+      "source_url": "https://github.com/15373426383s-wq/dian115-av-organizer/releases/download/v1.3.1/av-organizer-1.3.1.dian115p",
+      "sha256": "a8bd09442474062e4303e5417223ffda75764f33555118c1f46200de030c4149",
+      "delivery": "source",
+      "declared_usage": {
+        "apis": [
+          "GET /api/pt/downloaders",
+          "GET /api/pt/sites",
+          "POST /api/pt/search",
+          "POST /api/pt/download",
+          "POST /api/115/offline/add",
+          "GET /api/cache/magnet/changes"
+        ],
+        "sites": ["用户配置的 JavBus / JavDB / FC2 及内置元数据来源（可停用或改地址）", "宿主已配置的馒头站点与下载器", "用户配置的演员资料 / 翻译 / Webhook 接口"],
+        "files": ["设置里的收件目录与整理目标/STRM 源与输出目录"],
+        "notifications": true,
+        "risk": "移动收件目录里的视频与字幕、写入 NFO 与封面；订阅启用后会自动搜索并提交 115 离线或下载器任务；可选 AI 消耗宿主额度、演员同步写回 Emby。默认 AI/演员/水印/Webhook 关闭。"
+      }
+    }
+  ]
+}

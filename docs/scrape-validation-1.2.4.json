@@ -1,0 +1,1101 @@
+{
+  "at": "2026-10-31",
+  "version": "1.2.4",
+  "scope": "本机网络；仅元数据与图片；年龄确认已授权；未写入媒体或提交下载",
+  "sources": [
+    {
+      "source": "javdb",
+      "name": "JavDB",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "region",
+          "error": "JavDB 不允许当前网络所在地区访问，请配置代理（宿主代理域名或插件刮削代理）",
+          "ms": 690
+        },
+        {
+          "number": "HEYZO-1048",
+          "status": "region",
+          "error": "JavDB 不允许当前网络所在地区访问，请配置代理（宿主代理域名或插件刮削代理）",
+          "ms": 1068
+        }
+      ]
+    },
+    {
+      "source": "javlibrary",
+      "name": "JavLibrary",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "protected",
+          "error": "JavLibrary 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 777
+        },
+        {
+          "number": "ABP-001",
+          "status": "protected",
+          "error": "JavLibrary 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 1316
+        }
+      ]
+    },
+    {
+      "source": "r18dev",
+      "name": "R18.dev（DMM 数据）",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2021-02-19",
+          "runtime": 147,
+          "url": "https://r18.dev/videos/vod/movies/detail/-/combined=ssis00001/json",
+          "ms": 1600,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 168697,
+            "url": "https://pics.dmm.co.jp/digital/video/ssis00001/ssis00001pl.jpg",
+            "file": "images/r18dev-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/r18dev-ssis-001.bin",
+              "format": "jpeg",
+              "height": 538,
+              "width": 800
+            }
+          }
+        },
+        {
+          "number": "IPX-177",
+          "returnedNumber": "IPX-177",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2018-07-19",
+          "runtime": 170,
+          "url": "https://r18.dev/videos/vod/movies/detail/-/combined=ipx00177/json",
+          "ms": 2905,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 178085,
+            "url": "https://pics.dmm.co.jp/digital/video/ipx00177/ipx00177pl.jpg",
+            "file": "images/r18dev-ipx-177.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/r18dev-ipx-177.bin",
+              "format": "jpeg",
+              "height": 538,
+              "width": 800
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "mgstage",
+      "name": "MGStage",
+      "samples": [
+        {
+          "number": "259LUXU-1000",
+          "returnedNumber": "259LUXU-1000",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2018-08-06",
+          "runtime": 74,
+          "url": "https://www.mgstage.com/product/product_detail/259LUXU-1000/",
+          "ms": 825,
+          "image": {
+            "status": 200,
+            "contentType": "binary/octet-stream",
+            "bytes": 171007,
+            "url": "https://image.mgstage.com/images/luxutv/259luxu/1000/pb_e_259luxu-1000.jpg",
+            "file": "images/mgstage-259luxu-1000.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/mgstage-259luxu-1000.bin",
+              "format": "jpeg",
+              "height": 472,
+              "width": 840
+            }
+          }
+        },
+        {
+          "number": "300MIUM-123",
+          "returnedNumber": "300MIUM-123",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2017-09-23",
+          "runtime": 90,
+          "url": "https://www.mgstage.com/product/product_detail/300MIUM-123/",
+          "ms": 487,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 399031,
+            "url": "https://image.mgstage.com/images/prestigepremium/300mium/123/pb_e_300mium-123.jpg",
+            "file": "images/mgstage-300mium-123.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/mgstage-300mium-123.bin",
+              "format": "jpeg",
+              "height": 472,
+              "width": 840
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "jav321",
+      "name": "Jav321",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2021-02-19",
+          "runtime": 147,
+          "url": "https://www.jav321.com/video/ssis00001",
+          "ms": 1974,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 13339,
+            "url": "http://pics.dmm.co.jp/digital/video/ssis00001/ssis00001ps.jpg",
+            "file": "images/jav321-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/jav321-ssis-001.bin",
+              "format": "jpeg",
+              "height": 200,
+              "width": 147
+            }
+          }
+        },
+        {
+          "number": "IPX-177",
+          "returnedNumber": "IPX-177",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2018-07-19",
+          "runtime": 170,
+          "url": "https://www.jav321.com/video/ipx00177",
+          "ms": 2252,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 14036,
+            "url": "http://pics.dmm.co.jp/digital/video/ipx00177/ipx00177ps.jpg",
+            "file": "images/jav321-ipx-177.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/jav321-ipx-177.bin",
+              "format": "jpeg",
+              "height": 200,
+              "width": 147
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "avsox",
+      "name": "AVSOX",
+      "samples": [
+        {
+          "number": "HEYZO-1048",
+          "returnedNumber": "HEYZO-1048",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 1,
+          "date": "2016-01-02",
+          "runtime": 60,
+          "url": "https://avsox.click/cn/movie/nbjvybn",
+          "ms": 3668,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 61841,
+            "url": "https://file.netcdn.space/storage/heyzo/contents/3000/1048/images/player_thumbnail.jpg",
+            "file": "images/avsox-heyzo-1048.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/avsox-heyzo-1048.bin",
+              "format": "jpeg",
+              "height": 450,
+              "width": 800
+            }
+          }
+        },
+        {
+          "number": "010120-001",
+          "returnedNumber": "010120-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 1,
+          "date": "2020-01-01",
+          "runtime": 59,
+          "url": "https://avsox.click/cn/movie/nozzaem",
+          "ms": 3803,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 75234,
+            "url": "https://file.netcdn.space/storage/caribbeancom/moviepages/010120-001/images/l_l.jpg",
+            "file": "images/avsox-010120-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/avsox-010120-001.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "freejavbt",
+      "name": "FreeJavBT",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2021-02-19",
+          "runtime": 150,
+          "url": "https://freejavbt.com/SSIS-001",
+          "ms": 696,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 28532,
+            "url": "https://666.9989641.xyz/images/2023/12/04/90a1c975a08f776ea1515793cf7058be.jpg",
+            "file": "images/freejavbt-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/freejavbt-ssis-001.bin",
+              "format": "jpeg",
+              "height": 317,
+              "width": 373
+            }
+          }
+        },
+        {
+          "number": "HEYZO-1048",
+          "returnedNumber": "HEYZO-1048",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2016-01-02",
+          "runtime": 65,
+          "url": "https://freejavbt.com/HEYZO-1048",
+          "ms": 201,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 24303,
+            "url": "https://666.9989641.xyz/images/2024/05/11/72236c7e9745df10363f2faf4121101e.jpg",
+            "file": "images/freejavbt-heyzo-1048.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/freejavbt-heyzo-1048.bin",
+              "format": "jpeg",
+              "height": 268,
+              "width": 434
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "mmtv",
+      "name": "7mmtv",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2021-02-18",
+          "runtime": 147,
+          "url": "https://7mmtv.sx/zh/reducing-mosaic_content/11221/SSIS-001.html",
+          "ms": 3099,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 176434,
+            "url": "https://n3.1026cdn.sx/censored/b/261483_SSIS-001.jpg",
+            "file": "images/mmtv-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/mmtv-ssis-001.bin",
+              "format": "jpeg",
+              "height": 538,
+              "width": 800
+            }
+          }
+        },
+        {
+          "number": "HEYZO-1048",
+          "returnedNumber": "HEYZO-1048",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2016-01-02",
+          "runtime": 61,
+          "url": "https://7mmtv.sx/zh/uncensored_content/1695/HEYZO-1048.html",
+          "ms": 2405,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 86115,
+            "url": "https://n3.1026cdn.sx/uncensored/b/5096_heyzo-1048.jpg",
+            "file": "images/mmtv-heyzo-1048.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/mmtv-heyzo-1048.bin",
+              "format": "jpeg",
+              "height": 450,
+              "width": 800
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "airav_io",
+      "name": "Airav.io",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "protected",
+          "error": "Airav.io 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 447
+        },
+        {
+          "number": "HEYZO-1048",
+          "status": "protected",
+          "error": "Airav.io 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 1503
+        }
+      ]
+    },
+    {
+      "source": "airav",
+      "name": "AirAV",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "protected",
+          "error": "AirAV 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 462
+        },
+        {
+          "number": "IPX-177",
+          "status": "protected",
+          "error": "AirAV 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 1590
+        }
+      ]
+    },
+    {
+      "source": "xcity",
+      "name": "XCITY",
+      "samples": [
+        {
+          "number": "FE620AI",
+          "returnedNumber": "FE620AI",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2025-12-17",
+          "runtime": 58,
+          "url": "https://xcity.jp/avod/detail/?id=210019",
+          "ms": 2080,
+          "image": {
+            "status": 200,
+            "contentType": "image/webp",
+            "bytes": 17352,
+            "url": "https://faws.xcity.jp/package/medium/image/maker/shy/fe620ai/f_1781727633_1.jpg",
+            "file": "images/xcity-fe620ai.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/xcity-fe620ai.bin",
+              "format": "webp",
+              "height": 256,
+              "width": 180
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "fc2",
+      "name": "FC2 官方",
+      "samples": [
+        {
+          "number": "FC2-PPV-1292936",
+          "returnedNumber": "FC2-PPV-1292936",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 0,
+          "actorPhotos": 0,
+          "date": "2020-03-04",
+          "runtime": 0,
+          "url": "https://adult.contents.fc2.com/article/1292936/",
+          "ms": 2004,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 8157,
+            "url": "https://contents-thumbnail2.fc2.com/w276/storage21000.contents.fc2.com/file/335/33465695/1583319753.61.jpg",
+            "file": "images/fc2-fc2-ppv-1292936.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/fc2-fc2-ppv-1292936.bin",
+              "format": "jpeg",
+              "height": 155,
+              "width": 276
+            }
+          }
+        },
+        {
+          "number": "FC2-PPV-3061625",
+          "status": "not_found",
+          "ms": 247
+        }
+      ]
+    },
+    {
+      "source": "fc2ppvdb",
+      "name": "FC2PPVDB",
+      "samples": [
+        {
+          "number": "FC2-PPV-1292936",
+          "status": "down",
+          "error": "FC2PPVDB 返回 HTTP 526",
+          "ms": 515
+        }
+      ]
+    },
+    {
+      "source": "caribbeancom",
+      "name": "Caribbeancom 加勒比",
+      "samples": [
+        {
+          "number": "010120-001",
+          "returnedNumber": "010120-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2020-01-01",
+          "runtime": 59,
+          "url": "https://www.caribbeancom.com/moviepages/010120-001/index.html",
+          "ms": 695,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 141920,
+            "url": "https://www.caribbeancom.com/moviepages/010120-001/images/l_l.jpg",
+            "file": "images/caribbeancom-010120-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/caribbeancom-010120-001.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "caribbeancompr",
+      "name": "Caribbeancom Premium",
+      "samples": [
+        {
+          "number": "010120_001",
+          "returnedNumber": "010120_001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2020-01-01",
+          "runtime": 71,
+          "url": "https://www.caribbeancompr.com/moviepages/010120_001/index.html",
+          "ms": 770,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 146429,
+            "url": "https://www.caribbeancompr.com/moviepages/010120_001/images/l_l.jpg",
+            "file": "images/caribbeancompr-010120_001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/caribbeancompr-010120_001.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "1pondo",
+      "name": "一本道 1Pondo",
+      "samples": [
+        {
+          "number": "123120_001",
+          "returnedNumber": "123120_001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2020-12-31",
+          "runtime": 62,
+          "url": "https://www.1pondo.tv/dyn/phpauto/movie_details/movie_id/123120_001.json",
+          "ms": 964,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 132378,
+            "url": "https://www.1pondo.tv/moviepages/123120_001/images/str.jpg",
+            "file": "images/1pondo-123120_001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/1pondo-123120_001.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "10musume",
+      "name": "天然むすめ 10musume",
+      "samples": [
+        {
+          "number": "010120_01",
+          "returnedNumber": "010120_01",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2020-01-01",
+          "runtime": 60,
+          "url": "https://www.10musume.com/dyn/phpauto/movie_details/movie_id/010120_01.json",
+          "ms": 975,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 243105,
+            "url": "https://www.10musume.com/moviepages/010120_01/images/str.jpg",
+            "file": "images/10musume-010120_01.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/10musume-010120_01.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "pacopacomama",
+      "name": "パコパコママ",
+      "samples": [
+        {
+          "number": "103126_100",
+          "returnedNumber": "103126_100",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2026-10-31",
+          "runtime": 73,
+          "url": "https://www.pacopacomama.com/dyn/phpauto/movie_details/movie_id/103126_100.json",
+          "ms": 1055,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 99516,
+            "url": "https://www.pacopacomama.com/moviepages/103126_100/images/l_hd.jpg",
+            "file": "images/pacopacomama-103126_100.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/pacopacomama-103126_100.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        },
+        {
+          "number": "102926_100",
+          "returnedNumber": "102926_100",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 4,
+          "actorPhotos": 0,
+          "date": "2026-10-29",
+          "runtime": 54,
+          "url": "https://www.pacopacomama.com/dyn/phpauto/movie_details/movie_id/102926_100.json",
+          "ms": 231,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 94002,
+            "url": "https://www.pacopacomama.com/moviepages/102926_100/images/l_hd.jpg",
+            "file": "images/pacopacomama-102926_100.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/pacopacomama-102926_100.bin",
+              "format": "jpeg",
+              "height": 540,
+              "width": 960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "heyzo",
+      "name": "HEYZO",
+      "samples": [
+        {
+          "number": "HEYZO-1048",
+          "status": "down",
+          "error": "HEYZO 站点维护中，暂时无法访问",
+          "ms": 584
+        },
+        {
+          "number": "HEYZO-2000",
+          "status": "down",
+          "error": "HEYZO 站点维护中，暂时无法访问",
+          "ms": 1046
+        }
+      ]
+    },
+    {
+      "source": "tokyohot",
+      "name": "Tokyo-Hot",
+      "samples": [
+        {
+          "number": "N1234",
+          "returnedNumber": "N1234",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2017-04-25",
+          "runtime": 64,
+          "url": "https://my.tokyo-hot.com/product/n1234/",
+          "ms": 3434,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 101873,
+            "url": "https://my.cdn.tokyo-hot.com/media/n1234/list_image/n1234_1280_720/820x462_default.jpg",
+            "file": "images/tokyohot-n1234.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/tokyohot-n1234.bin",
+              "format": "jpeg",
+              "height": 462,
+              "width": 820
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "javdatabase",
+      "name": "JAV Database",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 2,
+          "actorPhotos": 0,
+          "date": "2021-02-18",
+          "runtime": 0,
+          "url": "https://www.javdatabase.com/movies/ssis-001/",
+          "ms": 597,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 168697,
+            "url": "https://pics.dmm.co.jp/digital/video/ssis00001/ssis00001pl.jpg",
+            "file": "images/javdatabase-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/javdatabase-ssis-001.bin",
+              "format": "jpeg",
+              "height": 538,
+              "width": 800
+            }
+          }
+        },
+        {
+          "number": "ABP-001",
+          "returnedNumber": "ABP-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2013-06-28",
+          "runtime": 125,
+          "url": "https://www.javdatabase.com/movies/abp-001/",
+          "ms": 252,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 191931,
+            "url": "https://pics.dmm.co.jp/digital/video/118abp00001/118abp00001pl.jpg",
+            "file": "images/javdatabase-abp-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/javdatabase-abp-001.bin",
+              "format": "jpeg",
+              "height": 539,
+              "width": 800
+            }
+          }
+        }
+      ]
+    },
+    {
+      "source": "avwiki",
+      "name": "AV-Wiki（素人女优名）",
+      "samples": [
+        {
+          "number": "259LUXU-1000",
+          "returnedNumber": "259LUXU-1000",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": false,
+          "actors": 1,
+          "actorPhotos": 0,
+          "date": "2018-08-06",
+          "runtime": 0,
+          "url": "https://av-wiki.net/259luxu-1000/",
+          "ms": 531,
+          "image": {
+            "status": 200,
+            "contentType": "binary/octet-stream",
+            "bytes": 171007,
+            "url": "https://image.mgstage.com/images/luxutv/259luxu/1000/pb_e_259luxu-1000.jpg",
+            "file": "images/avwiki-259luxu-1000.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/avwiki-259luxu-1000.bin",
+              "format": "jpeg",
+              "height": 472,
+              "width": 840
+            }
+          }
+        },
+        {
+          "number": "300MIUM-123",
+          "status": "not_found",
+          "ms": 1474
+        }
+      ]
+    },
+    {
+      "source": "avbase",
+      "name": "AVBASE",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "protected",
+          "error": "AVBASE 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 494
+        },
+        {
+          "number": "300MIUM-1461",
+          "status": "protected",
+          "error": "AVBASE 返回了防护验证页面，请导入浏览器 Cookie 或更换网络",
+          "ms": 1501
+        }
+      ]
+    },
+    {
+      "source": "theporndb",
+      "name": "ThePornDB（需要令牌）",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "auth",
+          "error": "ThePornDB（需要令牌） 需要先在来源设置里填写令牌",
+          "ms": 0
+        }
+      ]
+    },
+    {
+      "source": "javbus",
+      "name": "JavBus",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "status": "human_verification",
+          "error": "JavBus 仍要求人工答题验证，请在浏览器完成后通过 CookieCloud 或来源 Cookie 导入验证状态",
+          "ms": 1741
+        },
+        {
+          "number": "HEYZO-1048",
+          "status": "human_verification",
+          "error": "JavBus 仍要求人工答题验证，请在浏览器完成后通过 CookieCloud 或来源 Cookie 导入验证状态",
+          "ms": 1722
+        }
+      ]
+    },
+    {
+      "source": "fanza",
+      "name": "FANZA（DMM）",
+      "samples": [
+        {
+          "number": "SSIS-001",
+          "returnedNumber": "SSIS-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 2,
+          "actorPhotos": 2,
+          "date": "2021-02-19",
+          "runtime": 147,
+          "url": "https://video.dmm.co.jp/av/content/?id=ssis00001",
+          "ms": 1621,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 933803,
+            "url": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ssis00001/ssis00001pl.jpg",
+            "file": "images/fanza-ssis-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/fanza-ssis-001.bin",
+              "format": "jpeg",
+              "height": 1468,
+              "width": 2184
+            }
+          }
+        },
+        {
+          "number": "IPX-177",
+          "returnedNumber": "IPX-177",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 1,
+          "date": "2018-07-19",
+          "runtime": 170,
+          "url": "https://video.dmm.co.jp/av/content/?id=ipx00177",
+          "ms": 1847,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 184801,
+            "url": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipx00177/ipx00177pl.jpg",
+            "file": "images/fanza-ipx-177.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/fanza-ipx-177.bin",
+              "format": "jpeg",
+              "height": 538,
+              "width": 800
+            }
+          }
+        },
+        {
+          "number": "SDABP-001",
+          "returnedNumber": "SDABP-001",
+          "status": "metadata",
+          "missing": [],
+          "hasTitle": true,
+          "hasCover": true,
+          "hasPlot": true,
+          "actors": 1,
+          "actorPhotos": 1,
+          "date": "2016-12-08",
+          "runtime": 171,
+          "url": "https://video.dmm.co.jp/av/content/?id=1sdabp00001",
+          "ms": 2752,
+          "image": {
+            "status": 200,
+            "contentType": "image/jpeg",
+            "bytes": 153226,
+            "url": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdabp00001/1sdabp00001pl.jpg",
+            "file": "images/fanza-sdabp-001.bin",
+            "decode": {
+              "decoded": true,
+              "file": "images/fanza-sdabp-001.bin",
+              "format": "jpeg",
+              "height": 537,
+              "width": 800
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "sources": 26,
+    "passedSources": 17,
+    "samples": 45,
+    "metadata": 27,
+    "decodedCovers": 27,
+    "decodedActorImages": 3
+  },
+  "actorImages": [
+    {
+      "status": 200,
+      "bytes": 5521,
+      "file": "images/fanza-actor-1.bin",
+      "url": "https://awsimgsrc.dmm.co.jp/pics_dig/mono/actjpgs/aoi_tukasa.jpg",
+      "decode": {
+        "decoded": true,
+        "file": "images/fanza-actor-1.bin",
+        "format": "jpeg",
+        "height": 125,
+        "width": 125
+      }
+    },
+    {
+      "status": 200,
+      "bytes": 6691,
+      "file": "images/fanza-actor-2.bin",
+      "url": "https://awsimgsrc.dmm.co.jp/pics_dig/mono/actjpgs/otosiro_sayaka.jpg",
+      "decode": {
+        "decoded": true,
+        "file": "images/fanza-actor-2.bin",
+        "format": "jpeg",
+        "height": 125,
+        "width": 125
+      }
+    },
+    {
+      "status": 200,
+      "bytes": 4850,
+      "file": "images/fanza-actor-3.bin",
+      "url": "https://awsimgsrc.dmm.co.jp/pics_dig/mono/actjpgs/minano_ai.jpg",
+      "decode": {
+        "decoded": true,
+        "file": "images/fanza-actor-3.bin",
+        "format": "jpeg",
+        "height": 125,
+        "width": 125
+      }
+    }
+  ]
+}
