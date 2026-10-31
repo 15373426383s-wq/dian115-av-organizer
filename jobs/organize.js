@@ -146,13 +146,15 @@ export async function recover(ctx, checkpoint) {
 
 async function organizeOne(ctx, env, file, siblings, state, controls, settings, destination, runtime) {
   const started = Date.now()
-  ;({ctx,env}=fileDeadline(ctx,env,settings.file_timeout))
+  // 单文件时间预算：只在阶段边界检查，不包装宿主对象（见 jobs/lib/deadline.js）。
+  const budget = fileDeadline(ctx, env, settings.file_timeout)
   const previous = state.pending[file.path]
   const control = controls.get(file.path) || {}
   const logs = []
   const log = message => { logs.push(message); return ctx.task.log(`${file.name}：${message}`) }
   const parent = parentNameFor(file.path, settings.inbox)
 
+  budget.check()
   const initial = enrichFileContext(parseWithSettings(file,parent,settings),file,siblings,settings)
   if(initial.extra && settings.action_mode !== 'in_place') return organizeExtra(ctx,file,initial,state,settings,runtime,log)
   let result
@@ -197,9 +199,11 @@ async function organizeOne(ctx, env, file, siblings, state, controls, settings, 
   const meta = settings.action_mode === 'rename_only' || settings.reuse_metadata ? applyMappings(editMetadata(result.meta,settings.manual_metadata), settings) : await enrichMetadata(ctx, applyMappings(result.meta, settings), parsed, file, settings, log)
   if (result.method !== 'exact') await log(`${methodText(result)} → ${meta.number}`)
 
+  budget.check()
   const plan = planFile(file, parsed, meta, settings, destination)
   if(plan.videoTarget===file.path)plan.inPlace=true
   // 同一目标目录（例如同一番号的 CD1、CD2）的检查、写入与移动按顺序进行。
+  budget.check()
   return runtime.lock(plan.metaDir || plan.videoDir || plan.videoTarget, () => placeFile(ctx, env, file, siblings, state, settings, runtime, { plan, parsed, meta, result, started, logs, log }))
 }
 
@@ -224,6 +228,33 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
   }
 }
 
+// 视频搬运。CD2 挂载上宿主的 move 会直接失败（"CD2操作结果未确认: 移动源身份已变化"），
+// 而同一卷内的 copy 是云端秒级复制并可用，所以移动模式在 CD2 上改为「复制 → 校验 → 删除源」。
+async function transferVideo(ctx, file, plan, settings, log) {
+  const mode = settings.transfer_mode || 'move'
+  const overwrite = Boolean(settings.overwrite_video)
+  if (mode !== 'move') {
+    await ctx.files.call({ operation: mode, path: file.path, destination: plan.videoTarget, overwrite })
+    return
+  }
+  if (!await isCd2PathOnHost(ctx, file.path)) {
+    await ctx.files.call({ operation: 'move', path: file.path, destination: plan.videoTarget, overwrite })
+    return
+  }
+  await ctx.files.call({ operation: 'copy', path: file.path, destination: plan.videoTarget, overwrite })
+  if (!await exists(ctx, plan.videoTarget)) throw new Error('CD2 复制未生效：目标文件没有出现')
+  await ctx.files.call({ operation: 'remove', path: file.path })
+  await log('CD2 挂载不支持移动，已改为复制后删除源文件')
+}
+
+// 宿主 stat 会给出 backend，用它判断路径是不是挂在 CD2 上。
+async function isCd2PathOnHost(ctx, path) {
+  try {
+    const info = await ctx.files.call({ operation: 'stat', path })
+    return info?.backend === 'cd2'
+  } catch { return false }
+}
+
 async function finishFile(ctx, env, file, siblings, state, settings, { plan, parsed, meta, result, started, logs, log, transferComplete }) {
   // 先写元数据，再移动视频：STRM 模式下宿主生成 .strm 并刷新 Emby 时，元数据已经就位。
   const written = settings.action_mode === 'rename_only'
@@ -240,7 +271,7 @@ async function finishFile(ctx, env, file, siblings, state, settings, { plan, par
       }
     }
     await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
-    await ctx.files.call({ operation: settings.transfer_mode || 'move', path: file.path, destination: plan.videoTarget, overwrite: Boolean(settings.overwrite_video) })
+    await transferVideo(ctx, file, plan, settings, log)
     await transferComplete()
     if (settings.transfer_mode !== 'move') state.done[file.path] = signature(file)
     if (settings.delete_empty && settings.transfer_mode === 'move') await removeEmptyParents(ctx, dirname(file.path), settings.inbox)
@@ -277,6 +308,8 @@ async function identifyNumberOnly(file, parent, settings, manualNumber) {
 
 async function writeMetadata(ctx, env, meta, parsed, plan, settings, log) {
   const staging = `staging/${fileKey(plan.videoTarget)}`
+  // 入口先抓住 files 引用：清理阶段直接用它，避免依赖作用域里的 ctx。
+  const filesApi = ctx.files
   const staged = []
   const files = {}
   let cover = ''
@@ -338,6 +371,13 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log) {
     if(item.directory)await ctx.files.call({operation:'mkdir',path:item.directory})
     await ctx.files.call({ operation: 'move', path: item.path, destination: joinPath(item.directory || plan.metaDir, item.name), overwrite: item.name.endsWith('.nfo') || settings.overwrite_images !== false, progress: false })
   }
+  // 校验元数据是否真的落到磁盘：宿主把插件文件写入 CD2 时会返回成功但不落地。
+  const missing = []
+  for (const [key, path] of Object.entries(files)) {
+    if (typeof path !== 'string' || !path) continue
+    if (!await exists(ctx, path)) { missing.push(key); delete files[key] }
+  }
+  if (missing.length) await log(`⚠ 元数据未能写入目标目录（${missing.join('、')}）：当前存储不支持写入插件文件，本次只整理视频`)
   if (extrafanart.length) {
     // Kodi / Emby 约定：剧照放在视频同目录的 extrafanart 子目录。
     const dir = joinPath(plan.metaDir, settings.sample_layout==='extras' ? 'extras' : 'extrafanart')
@@ -349,7 +389,13 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log) {
     files.extrafanart_count = extrafanart.length
   }
   return { files, cover }
-  } finally { await ctx.files.call({ operation: 'remove', path: staging, progress: false }).catch(() => {}) }
+  } catch (error) {
+    // 真正的失败点先记下来：finally 里的清理如果也失败，会把原始错误盖掉。
+    await log(`写元数据失败：${String((error && (error.stack || error.message)) || error).split('\n').slice(0, 4).join(' | ')}`).catch(() => {})
+    throw error
+  } finally {
+    try { await filesApi.call({ operation: 'remove', path: staging, progress: false }) } catch (e) { }
+  }
 }
 
 async function download(env, url, saveTo, referer, log) {

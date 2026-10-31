@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mapPool, createThrottle, keyedLock, serial } from '../jobs/lib/pool.js'
 import { run, recover } from '../jobs/organize.js'
+import { fileDeadline } from '../jobs/lib/deadline.js'
 
 const tick = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -105,4 +106,30 @@ test('中断恢复核对全部在途文件，兼容旧版单文件断点', async
   await recover(ctx, { stage: 'files', items })
   await recover(ctx, { stage: 'file', path: '/mnt/in/C-1.mp4', videoTarget: '/mnt/lib/C-1.mp4', number: 'C-1' })
   assert.deepEqual(storage.get('history').map(item => item.number).sort(), ['A-1', 'B-1', 'C-1'])
+})
+
+test('fileDeadline 不包装宿主对象（复制/重绑会让宿主调用失败）', async () => {
+  const files = { call: async op => `ok:${op.operation}` }
+  const ctx = { files, api: { post: async () => 1 }, http: {}, task: { log: async () => {} } }
+  const env = { get: async () => 'page' }
+  const budget = fileDeadline(ctx, env, 60)
+  // 原样返回，引用不变，方法可以直接调用
+  assert.equal(budget.ctx, ctx)
+  assert.equal(budget.env, env)
+  assert.equal(await budget.ctx.files.call({ operation: 'stat' }), 'ok:stat')
+  assert.equal(await budget.env.get('https://x'), 'page')
+  budget.check() // 未到点不抛
+})
+
+test('fileDeadline 到点后 check() 抛错', async () => {
+  let clock = 0
+  const budget = fileDeadline({}, {}, 1, () => clock)
+  budget.check()
+  clock = 5000
+  assert.throws(() => budget.check(), /单文件处理超过 1 秒/)
+})
+
+test('未设置预算时 check() 永远放行', async () => {
+  const budget = fileDeadline({}, {}, 0, () => 1e12)
+  assert.doesNotThrow(() => budget.check())
 })

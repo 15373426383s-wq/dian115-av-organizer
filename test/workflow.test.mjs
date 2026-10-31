@@ -105,9 +105,16 @@ test('configuration export redacts credentials including serialized source confi
  const text=JSON.stringify(exported);assert.doesNotMatch(text,/secret|\\"token\\":\\"token|"key"/);assert.match(text,/example.test/)
  assert.deepEqual(configExport({inbox:'/in',dir_template:'{number}'},'naming').settings,{dir_template:'{number}'})
 })
-test('per-file deadline waits for active write completion, then blocks subsequent writes',async()=>{
- const {fileDeadline}=await import('../jobs/lib/deadline.js');let now=0,calls=0
- const wrapped=fileDeadline({api:{},http:{},files:{call:async()=>{calls++;now=2000;return 'written'}}},{get:async()=>({status:200})},1,()=>now)
- assert.equal(await wrapped.ctx.files.call({operation:'move'}),'written')
- await assert.rejects(wrapped.ctx.files.call({operation:'move'}),/超过/);assert.equal(calls,1)
+test('per-file 预算只在检查点拦截，不动宿主对象', async () => {
+  const { fileDeadline } = await import('../jobs/lib/deadline.js')
+  let now = 0, calls = 0
+  const ctx = { api: {}, http: {}, files: { call: async () => { calls++; return 'written' } } }
+  const budget = fileDeadline(ctx, { get: async () => ({ status: 200 }) }, 1, () => now)
+  // 未到点：正常调用，且 ctx 未被替换
+  assert.equal(budget.ctx, ctx)
+  assert.equal(await budget.ctx.files.call({ operation: 'move' }), 'written')
+  now = 2000
+  // 到点：检查点拒绝继续，调用方不会再去动文件
+  assert.throws(() => budget.check(), /超过/)
+  assert.equal(calls, 1)
 })
