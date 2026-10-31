@@ -53,30 +53,30 @@ test('直连 request.get 成功：返回 body/url/status，不走宿主 render',
   assert.ok(logs.some(line => line.includes('已用 FlareSolverr 渲染')))
 })
 
-test('直连失败退回宿主 render，并把 html 映射成 body', async () => {
-  const ctx = fakeCtx({ answer: { status: 500, body: 'boom' }, render: { html: '<html>rendered</html>', url: 'https://example.com/r', http_status_verified: true } })
+test('配了端点但直连失败：保留原响应，不再调用宿主 render（避免 sessions.create 拖死实例）', async () => {
+  const ctx = fakeCtx({ answer: { status: 500, body: 'boom' }, render: { html: '<html>rendered</html>', url: 'https://example.com/r' } })
   const logs = []
   const response = await solveChallenge(ctx, settings, 'https://example.com/a', 'scrape', original, line => logs.push(line))
-  assert.equal(response.body, '<html>rendered</html>')
-  assert.equal(response.url, 'https://example.com/r')
-  assert.equal(response.status, 200)
-  assert.equal(ctx.calls.render.length, 1)
-  assert.equal(ctx.calls.render[0].endpoint, 'http://192.168.1.157:8191')
-  assert.ok(logs.some(line => line.includes('FlareSolverr 直连失败')))
+  assert.equal(response.body, original.body)
+  assert.equal(response.url, original.url)
+  assert.equal(response.status, original.status)
+  assert.equal(ctx.calls.render.length, 0)
+  assert.ok(logs.some(line => line.includes('FlareSolverr 渲染失败')))
 })
 
 test('F 盾返回 error 状态时不会把错误页当成结果', async () => {
   const bad = { status: 200, body: JSON.stringify({ status: 'error', message: 'Challenge not solved' }) }
   assert.throws(() => solutionToResponse(bad, original, 'https://example.com/a'), /Challenge not solved/)
-  const ctx = fakeCtx({ answer: bad, render: { html: '<html>ok</html>', url: 'https://example.com/a' } })
+  const ctx = fakeCtx({ answer: bad })
   const response = await solveChallenge(ctx, settings, 'https://example.com/a', 'scrape', original)
-  assert.equal(response.body, '<html>ok</html>')
+  assert.equal(response.body, original.body)
+  assert.equal(ctx.calls.render.length, 0)
 })
 
-test('没有配置端点时直接走宿主 render', async () => {
-  const ctx = fakeCtx({ render: { html: '<html>x</html>', url: 'https://example.com/x' } })
+test('没有配置端点时原样返回，不发任何请求', async () => {
+  const ctx = fakeCtx({})
   const response = await solveChallenge(ctx, {}, 'https://example.com/x', 'scrape', original)
-  assert.equal(response.body, '<html>x</html>')
+  assert.equal(response, original)
   assert.equal(ctx.calls.request.length, 0)
-  assert.equal(ctx.calls.render[0].endpoint, undefined)
+  assert.equal(ctx.calls.render.length, 0)
 })

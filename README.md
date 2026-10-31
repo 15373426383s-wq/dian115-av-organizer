@@ -2,15 +2,16 @@
 
 按番号识别、刮削并整理视频。识别、刮削、命名、NFO 与移动全部由插件完成，不使用宿主的 TMDB 整理；宿主提供文件操作、监听、网络、通知、FFP、图像处理、AI、图片标记、Emby 与 STRM 能力，插件负责业务编排。
 
-当前版本 **1.4.1**（swgzy 维护版，基于 1.3.0，并借鉴 [MDC-NGi](https://github.com/li-peifeng/NGi) 的部分设计），需要宿主插件 API **3.5**。界面采用 Liquid Glass 风格，跟随宿主明暗主题；桌面使用侧栏导航，小屏使用横向导航。文件浏览、目录选择、115 账号、下载器、馒头站点、Emby 服务器与媒体库、AI 提供商与模型均使用现有插件平台接口。
+当前版本 **1.4.2**（swgzy 维护版，基于 1.3.0，并借鉴 [MDC-NGi](https://github.com/li-peifeng/NGi) 的部分设计），需要宿主插件 API **3.5**。界面采用 Liquid Glass 风格，跟随宿主明暗主题；桌面使用侧栏导航，小屏使用横向导航。文件浏览、目录选择、115 账号、下载器、馒头站点、Emby 服务器与媒体库、AI 提供商与模型均使用现有插件平台接口。
 
 验证结果见 [1.3.0 页面与选择器验证](docs/ui-validation-1.3.0.md)。
 
-## 1.4.1 修复：FlareSolverr 改用直连 request.get
+## 1.4.1 / 1.4.2 修复：FlareSolverr 改用直连 request.get
 
-- 挑战页兜底改为**先直连** FlareSolverr 兼容服务（`POST <endpoint>/v1`，`cmd=request.get`，走 `proxy: direct` 不走外网代理），失败再退回宿主 `render`。这样只实现 `request.get` 的实例（如 F 盾）也能用，且不会因为宿主 `render` 的 `sessions.create` 不兼容而卡住服务。
-- 修复宿主 `render` 返回值字段是 `html`、而来源解析读 `response.body` 导致挑战页永远解析为空的问题；两条路径现在统一成 `{status, body, url}`。
-- 直连预算按「来源请求超时 × 2」封顶 120 秒，F 盾异常时不会长期拖住单个来源。
+- 挑战页兜底改为**直连** FlareSolverr 兼容服务：`POST <endpoint>/v1` + `cmd=request.get`，并显式 `proxy: direct`（F 盾在内网，不走外网代理）。只实现 `request.get` 的实例（如 F 盾）也能用。
+- **不再走宿主 `render`**（它会先 `sessions.create`）：部分实例在该调用上会卡住甚至被拖死；配了端点时只用直连，失败就直接返回原始响应，让该来源快速失败，不拖累整轮整理。未配端点时才交给宿主 render（宿主可能已内置 FlareSolverr）。
+- **修复字段映射 bug**：宿主 `render` 返回 `html`，而来源解析读 `response.body`，导致挑战页即使渲染成功也解析为空；现在两条路径统一成 `{status, body, url}`。
+- 直连预算 = 来源请求超时 × 2，封顶 120 秒。
 
 ## 1.4.0 借鉴 MDC-NGi 的三处改动
 
@@ -22,7 +23,7 @@
 
 ## 安装与配置
 
-在插件中心上传 `av-organizer-1.4.1.dian115p` 安装或更新。插件 ID 保持 `local.av-organizer`，升级保留原设置、订阅和历史记录。
+在插件中心上传 `av-organizer-1.4.2.dian115p` 安装或更新。插件 ID 保持 `local.av-organizer`，升级保留原设置、订阅和历史记录。
 
 1. 在「设置 → 基本」选择工作模式、收件目录与整理目标。目录通过本地/CD2 文件浏览器选择，支持筛选、排序和新建文件夹。
 2. 在「刮削来源」选择来源与顺序，按需配置登录状态。来源字段优先级通过选择和排序设置。

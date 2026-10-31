@@ -4,8 +4,8 @@
 //   1. 只实现 request.get 的实例（例如 F 盾）也能用；
 //   2. 宿主 render 需要先 sessions.create，某些实例上会卡住甚至把服务拖死；
 //   3. 直连可以自己控制超时预算，不会长时间占住来源请求。
-// 直连失败再退回宿主 render。两条路径统一成 {status, body, url}，
-// 因为来源解析读的是 response.body，而宿主 render 返回的字段名是 html。
+// 只走直连 request.get：宿主 render 会先 sessions.create，部分实例（F 盾）会卡住甚至被拖死。
+// 返回结果统一成 {status, body, url}，因为来源解析读的是 response.body。
 
 const V1 = /\/v1$/i
 
@@ -38,6 +38,8 @@ export function solutionToResponse(answer, original, url) {
 export async function solveChallenge(ctx, settings, url, session, original, log = () => {}) {
   const endpoint = flareSolverrEndpoint(settings)
   if (endpoint) {
+    // 配了端点就只用直连：宿主 render 会先 sessions.create，部分实例（F 盾）会卡住甚至被拖死。
+    // 直连失败也不回头打 render，直接把原响应还回去，让该来源快速失败，不拖累整轮整理。
     try {
       const budget = challengeBudget(settings)
       const answer = await ctx.http.request({
@@ -53,10 +55,10 @@ export async function solveChallenge(ctx, settings, url, session, original, log 
       await log(`已用 FlareSolverr 渲染 ${url}`)
       return response
     } catch (error) {
-      await log(`FlareSolverr 直连失败：${error.message || error}`)
+      await log(`FlareSolverr 渲染失败，保留原始响应：${error.message || error}`)
+      return original
     }
   }
-  const base = String(settings.flaresolverr_endpoint || '').trim().replace(/\/+$/, '').replace(/\/v1$/i, '')
-  const rendered = await ctx.http.render({ ...(base ? { endpoint: base } : {}), url, session, timeout_seconds: 120 })
-  return { ...original, status: 200, body: rendered.html || '', url: rendered.url || url, rendered: true, http_status_verified: rendered.http_status_verified }
+  // 没配端点就不做兜底：调用方（scrapeEnv）本来也只在这种情况下才会进来。
+  return original
 }

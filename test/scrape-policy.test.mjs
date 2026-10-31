@@ -86,8 +86,24 @@ test('来源 Cookie 与单来源检测支持临时规则',async()=>{
 test('宿主 HTTP 复用 JSON、会话、代理；正常页面不误调用渲染',async()=>{
   const calls=[],render=[]
   let response={status:200,body:'<html><script src="https://static.cloudflareinsights.com/beacon.min.js"></script></html>'}
-  const ctx={html:{},sleep:async()=>{},http:{cookies:async()=>{},request:async o=>{calls.push(o);return response},render:async o=>{render.push(o);return {status:200,body:'Rendered'}}}}
+  const ctx={html:{},sleep:async()=>{},http:{cookies:async()=>{},request:async o=>{
+    calls.push(o)
+    // 挑战页改走直连 request.get，端点返回 FlareSolverr 契约
+    if(/\/v1$/.test(String(o.url)))return {status:200,body:JSON.stringify({status:'ok',solution:{status:200,response:'<html>Rendered</html>',url:'https://site.test/final'}})}
+    return response
+  },render:async o=>{render.push(o);return {html:'<html>HostRendered</html>',url:o.url}}}}
   const e=await scrapeEnv(ctx,normalizeSettings({flaresolverr_endpoint:'http://render.test',proxy:'http://proxy.test',age_confirm:true,source_config:{javbus:{enabled:true}}}))
   await e.get('https://site.test',{method:'POST',json:[1,'cn']});assert.equal(render.length,0);assert.deepEqual(calls[0].json,[1,'cn']);assert.equal(calls[0].session,'scrape');assert.equal(calls[0].proxy,'http://proxy.test');assert.equal(e.ageConfirm,true)
-  response={status:200,body:'<title>Just a moment...</title>'};await e.get('https://site.test');assert.equal(render.length,1)
+  // 挑战页：直连 F 盾，不再调用宿主 render（宿主 render 会 sessions.create，部分实例会被拖死）
+  response={status:200,body:'<title>Just a moment...</title>'}
+  const solved=await e.get('https://site.test')
+  assert.equal(render.length,0)
+  const last=calls.at(-1)
+  assert.equal(last.url,'http://render.test/v1')
+  assert.equal(last.method,'POST')
+  assert.equal(last.proxy,'direct')
+  assert.equal(JSON.parse(last.body).cmd,'request.get')
+  assert.equal(solved.body,'<html>Rendered</html>')
+  assert.equal(solved.url,'https://site.test/final')
 })
+
