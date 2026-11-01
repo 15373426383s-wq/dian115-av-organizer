@@ -29,6 +29,7 @@ import { supplementalArtwork } from './lib/supplemental-art.js'
 import { quarantineFiles } from './lib/cleanup.js'
 import { prepareArtwork } from './lib/artwork.js'
 import { enrichMetadata, processArtwork, sendWebhooks, HOST } from './lib/enrich.js'
+import { isCloudTarget, isCloudSource, putFile, cloudStat, waitCloudFile, cloudTransfer, toCloudPath } from './lib/host-fs.js'
 
 const HISTORY_LIMIT = 500
 const PLOT_LIMIT = 16000
@@ -96,6 +97,7 @@ async function runDirectory(ctx, input, raw) {
   // 任务级计数：任务队列显示"已处理 done/total"，单个文件移动的进度不会覆盖整体进度。
   const summary = { success: 0, skipped: 0, pending: 0, items: [] }
   const counts = () => ({ total: batch.length, done: summary.success + summary.skipped, failed: summary.pending })
+  runtime.counts = counts
   const workers = Math.min(settings.concurrency, batch.length || 1)
   await ctx.task.update({ stage: 'organize', message: batch.length ? `准备处理 ${batch.length} 个文件（同时 ${workers} 个）` : '没有需要处理的文件', ...counts() })
   const active = new Set()
@@ -232,7 +234,7 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
   runtime.inflight.set(file.path, { path: file.path, videoTarget: plan.videoTarget, inPlace: Boolean(plan.inPlace), retained: settings.transfer_mode !== 'move', transfer_mode: settings.transfer_mode, expected_size: Number(file.size) > 0 && Number(file.size) < 2147483648 ? Number(file.size) : 0, signature: signature(file), number: meta.number, title: meta.title })
   await runtime.checkpoint()
   try {
-    return await finishFile(ctx, env, file, siblings, state, settings, { plan, parsed, meta, result, started, logs, log, transferComplete: async () => {
+    return await finishFile(ctx, env, file, siblings, state, settings, runtime, { plan, parsed, meta, result, started, logs, log, transferComplete: async () => {
       runtime.inflight.get(file.path).transfer_complete = true
       await runtime.checkpoint()
     } })
@@ -241,65 +243,37 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
   }
 }
 
-// 视频搬运。CD2 挂载上宿主的 move 会直接失败（"CD2操作结果未确认: 移动源身份已变化"），
-// 而同一卷内的 copy 是云端秒级复制并可用，所以移动模式在 CD2 上改为「复制 → 校验 → 删除源」。
-async function isCd2PathOnHost(ctx, path) {
-  try {
-    const info = await ctx.files.call({ operation: 'stat', path })
-    return info && info.backend === 'cd2'
-  } catch { return false }
-}
-
-async function confirmLanded(ctx, path) {
-  try {
-    const info = await ctx.files.call({ operation: 'stat', path })
-    return info && info.path ? info : null
-  } catch { return null }
-}
-
-// CD2 挂载内的 move 在宿主上会报「移动源身份已变化」（copy/rename/remove 都正常），
-// 所以 CD2 内统一按 copy → 校验落地 → 删源 处理，避免搬到一半丢文件。
-async function cd2Move(ctx, source, destination, overwrite, log) {
-  const existing = await confirmLanded(ctx, destination)
-  if (existing) {
-    if (!overwrite) throw new Error(`目标已存在：${destination}`)
-    await ctx.files.call({ operation: 'remove', path: destination, progress: false })
-  }
-  await ctx.files.call({ operation: 'copy', path: source, destination, overwrite, progress: false })
-  if (!await confirmLanded(ctx, destination)) throw new Error(`复制未生效：${destination}`)
-  await ctx.files.call({ operation: 'remove', path: source, progress: false })
-  await log('CD2 不支持移动，已改为复制后删除源文件')
-}
-
-async function transferVideo(ctx, file, plan, settings, log, onCd2) {
+// 视频搬运。源文件在 CD2 时，云端的 move 会返回「移动源身份已变化」，
+// 而同一云盘内的 copy 是云端复制并可用，所以云端源统一按「复制 → 回读确认 → 删源」处理。
+// 源与目标都在本机时直接 move（同文件系统是即时重命名）。
+async function transferVideo(ctx, file, plan, settings, log) {
   const mode = settings.transfer_mode || 'move'
   const overwrite = Boolean(settings.overwrite_video)
   if (mode !== 'move') {
     await ctx.files.call({ operation: mode, path: file.path, destination: plan.videoTarget, overwrite })
     return
   }
-  if (!onCd2) {
+  if (!await isCloudSource(ctx, file.path)) {
     await ctx.files.call({ operation: 'move', path: file.path, destination: plan.videoTarget, overwrite })
     return
   }
-  await cd2Move(ctx, file.path, plan.videoTarget, overwrite, log)
+  await cloudTransfer(ctx, file.path, plan.videoTarget, { overwrite, log })
 }
 
-async function finishFile(ctx, env, file, siblings, state, settings, { plan, parsed, meta, result, started, logs, log, transferComplete }) {
+async function finishFile(ctx, env, file, siblings, state, settings, runtime, { plan, parsed, meta, result, started, logs, log, transferComplete }) {
   // 先写元数据，再移动视频：STRM 模式下宿主生成 .strm 并刷新 Emby 时，元数据已经就位。
-  // 源文件一定存在，用它判断是否 CD2；目标目录这时可能还没建，stat 会失败。
-  const onCd2 = await isCd2PathOnHost(ctx, file.path)
   const written = settings.action_mode === 'rename_only'
     ? { files: {}, cover: '' }
-    : await writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
+    : await writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtime)
   const subtitles = []
   if (!plan.inPlace) {
     for (const subtitle of subtitleTargets(file.name, siblings, plan, settings)) {
       try {
-        if (settings.transfer_mode === 'move' && await isCd2PathOnHost(ctx, subtitle.source)) {
-          await cd2Move(ctx, subtitle.source, subtitle.target, Boolean(settings.overwrite_video), log)
+        const moveMode = settings.transfer_mode === 'move'
+        if (moveMode && await isCloudSource(ctx, subtitle.source)) {
+          await cloudTransfer(ctx, subtitle.source, subtitle.target, { overwrite: Boolean(settings.overwrite_video), log })
         } else {
-          await ctx.files.call({ operation: settings.transfer_mode === 'move' ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video) })
+          await ctx.files.call({ operation: moveMode ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video) })
         }
         subtitles.push(subtitle.target)
       } catch (error) {
@@ -307,7 +281,7 @@ async function finishFile(ctx, env, file, siblings, state, settings, { plan, par
       }
     }
     await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
-    await transferVideo(ctx, file, plan, settings, log, onCd2)
+    await transferVideo(ctx, file, plan, settings, log)
     await transferComplete()
     if (settings.transfer_mode !== 'move') state.done[file.path] = signature(file)
     if (settings.delete_empty && settings.transfer_mode === 'move') await removeEmptyParents(ctx, dirname(file.path), settings.inbox)
@@ -342,19 +316,24 @@ async function identifyNumberOnly(file, parent, settings, manualNumber) {
   return { ok: true, parsed, meta: { number: parsed.number, actors: [], genres: [], sources: [] }, method: manualNumber ? 'manual' : 'exact', score: 100 }
 }
 
-async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2) {
-  // 目标在 CD2 挂载上时，宿主执行「插件文件 → CD2」的复制会把 Linux 路径当成 Windows
-  // 相对路径（写到宿主工作目录），返回成功但文件并不在目标目录；搬图片时的 move 还会
-  // 让宿主直接中断脚本。用源文件（一定存在）判断后端，目标目录此时可能还没建。
-  if (onCd2) {
-    await log('目标在 CD2 挂载上，宿主无法把插件生成的文件写入该路径，本次只整理视频（NFO/海报/剧照跳过）')
-    return { files: {}, cover: '' }
+async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtime) {
+  // 下载进度：把当前下载项写进任务，任务队列里能看到「正在下载 海报（2/5）」。
+  // 搬运阶段由宿主自己写字节级进度（stage=file:move），这里只补充插件侧的下载环节。
+  const report = async message => {
+    try { await ctx.task.update({ stage: 'download', message, ...(runtime?.counts?.() || {}) }) } catch { /* 进度更新失败不影响整理 */ }
   }
+  // 元数据目标可能在本机，也可能在 CD2（STRM 模式下的输出目录常常是 CD2 挂载路径）。
+  // 两种后端的落地方式不同：
+  //   本机：宿主系统命令直接搬运，落地即可回读；
+  //   CD2 ：插件生成的文件只能经挂载路径写进云端，写完必须回读云端确认——
+  //         宿主对这类写入可能返回成功但云端读不到，确认不了就保留插件目录里的原件并说明原因。
+  const cloudTarget = await isCloudTarget(ctx, plan.metaDir)
   const staging = `staging/${fileKey(plan.videoTarget)}`
   // 入口先抓住 files 引用：清理阶段直接用它，避免依赖作用域里的 ctx。
   const filesApi = ctx.files
   const staged = []
   const files = {}
+  const kept = []
   let cover = ''
   try {
   const names={poster:plan.posterName,fanart:plan.fanartName,thumb:plan.thumbName || `${plan.base}-thumb.jpg`}
@@ -370,7 +349,7 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
   }
   if (settings.download_images && !settings.reuse_metadata && (meta.cover || meta.poster)) {
     const artMeta=await supplementalArtwork(env,meta,settings,log)
-    const paths=await prepareArtwork(ctx,env,artMeta,parsed,{...settings,image_options:wanted},staging,log)
+    const paths=await prepareArtwork(ctx,env,artMeta,parsed,{...settings,image_options:wanted},staging,log,(text)=>report(`正在下载${text}`))
     for(const [target,item] of Object.entries(paths)){staged.push({path:item.path,name:names[target]});files[target]=joinPath(plan.metaDir,names[target])}
     const source=paths.poster?.path || paths.fanart?.path || paths.thumb?.path
     if(settings.cover_cache && source){
@@ -382,6 +361,7 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
   let trailer = ''
   if (!settings.reuse_metadata && settings.download_trailer && meta.trailer && /\.mp4(?:[?#]|$)/i.test(meta.trailer)) {
     const name = `${plan.base}-trailer.mp4`
+    await report('正在下载预告片')
     const path = await download({ ...env, get: (url, options) => env.get(url, { ...options, timeout_seconds: Number(settings.trailer_timeout) || 120 }) }, meta.trailer, `${staging}/${name}`, meta.source_url, log)
     if (path) { staged.push({ path, name, directory: plan.videoDir || dirname(plan.videoTarget) }); files.trailer = joinPath(plan.videoDir || dirname(plan.videoTarget), name); trailer = files.trailer }
   } else if (!settings.reuse_metadata && settings.download_trailer && meta.trailer) {
@@ -389,7 +369,9 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
   }
   const extrafanart = []
   if (!settings.reuse_metadata && settings.download_extrafanart && meta.samples?.length && settings.extrafanart_limit > 0) {
-    const saved = await mapPool(meta.samples.slice(0, settings.extrafanart_limit), 4, async (url, index) => {
+    const samples = meta.samples.slice(0, settings.extrafanart_limit)
+    const saved = await mapPool(samples, 4, async (url, index) => {
+      await report(`正在下载剧照（${index + 1}/${samples.length}）`)
       const input = await download(env, url, `${staging}/extra-raw-${index}`, meta.source_url, log)
       if (!input) return ''
       try { return await processArtwork(ctx, input, `${staging}/extrafanart/fanart${index + 1}.jpg`, 'extrafanart', meta, parsed, settings, log) }
@@ -410,23 +392,37 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
   }
 
   await ctx.files.call({ operation: 'mkdir', path: plan.metaDir })
+  // 逐个落地：CD2 目标用 copy + 云端回读确认，确认不了就把原件留在插件目录里。
   for (const item of staged) {
-    if(item.directory)await ctx.files.call({operation:'mkdir',path:item.directory})
-    await ctx.files.call({ operation: 'move', path: item.path, destination: joinPath(item.directory || plan.metaDir, item.name), overwrite: item.name.endsWith('.nfo') || settings.overwrite_images !== false, progress: false })
+    if (item.directory) await ctx.files.call({ operation: 'mkdir', path: item.directory })
+    const destination = joinPath(item.directory || plan.metaDir, item.name)
+    const overwrite = item.name.endsWith('.nfo') || settings.overwrite_images !== false
+    if (cloudTarget) {
+      const put = await putFile(ctx, item.path, destination, { overwrite, log })
+      if (!put.ok) kept.push(item.name)
+    } else {
+      await ctx.files.call({ operation: 'move', path: item.path, destination, overwrite })
+    }
   }
-  // 校验元数据是否真的落到磁盘：宿主把插件文件写入 CD2 时会返回成功但不落地。
+  // 校验元数据是否真的落到目标位置。
   const missing = []
   for (const [key, path] of Object.entries(files)) {
     if (typeof path !== 'string' || !path) continue
     if (!await exists(ctx, path)) { missing.push(key); delete files[key] }
   }
-  if (missing.length) await log(`⚠ 元数据未能写入目标目录（${missing.join('、')}）：当前存储不支持写入插件文件，本次只整理视频`)
+  if (missing.length) await log(`⚠ 元数据未能写入目标目录（${missing.join('、')}）：当前存储不接受写入插件生成的文件，本次只整理视频`)
   if (extrafanart.length) {
     // Kodi / Emby 约定：剧照放在视频同目录的 extrafanart 子目录。
     const dir = joinPath(plan.metaDir, settings.sample_layout==='extras' ? 'extras' : 'extrafanart')
     await ctx.files.call({ operation: 'mkdir', path: dir })
     for (const path of extrafanart) {
-      await ctx.files.call({ operation: 'move', path, destination: joinPath(dir, settings.sample_layout==='extras' ? basename(path).replace(/\.jpg$/i,'.mp4') : basename(path)), overwrite: settings.overwrite_images!==false, progress: false })
+      const destination = joinPath(dir, settings.sample_layout==='extras' ? basename(path).replace(/\.jpg$/i,'.mp4') : basename(path))
+      if (cloudTarget) {
+        const put = await putFile(ctx, path, destination, { overwrite: settings.overwrite_images!==false, log })
+        if (!put.ok) kept.push(basename(path))
+      } else {
+        await ctx.files.call({ operation: 'move', path, destination, overwrite: settings.overwrite_images!==false })
+      }
     }
     files.extrafanart = dir
     files.extrafanart_count = extrafanart.length
@@ -437,7 +433,9 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, onCd2)
     await log(`写元数据失败：${String((error && (error.stack || error.message)) || error).split('\n').slice(0, 4).join(' | ')}`).catch(() => {})
     throw error
   } finally {
-    try { await filesApi.call({ operation: 'remove', path: staging, progress: false }) } catch (e) { }
+    // 没能落地的文件保留在插件目录里，便于事后取回；全部落地才清理暂存。
+    if (kept.length) await log(`以下文件未能写入目标，已保留在插件目录 ${staging}：${kept.join('、')}`).catch(() => {})
+    else try { await filesApi.call({ operation: 'remove', path: staging, progress: false }) } catch (e) { }
   }
 }
 

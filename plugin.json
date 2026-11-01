@@ -2,8 +2,8 @@
   "schema_version": 3,
   "id": "local.av-organizer",
   "name": "番号整理",
-  "version": "1.4.6",
-  "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；多目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步。",
+  "version": "1.5.0",
+  "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；本机与 CD2 双后端目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步；搬运与下载进度实时可见。",
   "author": "swgzy",
   "requires": {
     "api": "3.5"
@@ -118,10 +118,9 @@
       "GET /api/extensions/v3/local.av-organizer/ai/providers",
       "POST /api/emby-control/items/{id}/refresh",
       "POST /api/extensions/v3/local.av-organizer/data/sqlite",
+      "GET /api/cd2/clouds",
       "POST /api/extensions/v3/local.av-organizer/media/nfo",
-      "GET /api/cache/magnet/changes",
-      "POST /api/local-files/move",
-      "POST /api/local-files/rename"
+      "GET /api/cache/magnet/changes"
     ],
     "sites": [
       "用户配置的 JavBus / JavDB / FC2 地址",
@@ -134,11 +133,12 @@
       "可选 Amazon 海报搜索、Google/DeepL/DeepLX 翻译服务"
     ],
     "files": [
-      "设置里的收件目录",
-      "本地整理目标或所选 STRM 规则的源目录与输出目录"
+      "设置里的收件目录（Linux 绝对路径或 cd2:/ 路径）",
+      "本地整理目标，或所选 STRM 规则的源目录与输出目录（可在本机或 CD2 挂载内）",
+      "插件自有暂存目录（data/files/staging），用于生成 NFO、封面与剧照后再交给宿主落地"
     ],
     "notifications": true,
-    "risk": "移动收件目录里的视频与字幕，写入 NFO 和封面；默认跳过已有目标，用户可显式开启视频/字幕和图片覆盖；订阅启用并配置来源后自动搜索和提交 115 离线或下载器任务，会消耗对应账号的流量和存储；PT 资源仅提交下载器；可选移入独立清理目录、复制/硬链接/软链接、裁剪图片和空本地目录清理；开启 AI 会消耗宿主提供商额度；开启演员同步会补充或覆盖 Emby 演员简介与头像。",
+    "risk": "移动收件目录里的视频与字幕，写入 NFO 和封面；默认跳过已有目标，用户可显式开启视频/字幕和图片覆盖；CD2 目标写入后由插件回读云端确认，未确认的文件保留在插件暂存目录并在日志说明；订阅启用并配置来源后自动搜索和提交 115 离线或下载器任务，会消耗对应账号的流量和存储；PT 资源仅提交下载器；可选移入独立清理目录、复制/硬链接/软链接、裁剪图片和空本地目录清理；开启 AI 会消耗宿主提供商额度；开启演员同步会补充或覆盖 Emby 演员简介与头像。",
     "triggers": [
       "Telegram av / AV 空格及 /av 消息",
       "每分钟检查插件内到期订阅；搜索周期由用户设置"

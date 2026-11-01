@@ -4,6 +4,19 @@ import { formatTime, formatDuration } from '../components.js'
 import { openDetail } from './detail.js'
 
 const MODE_LABEL = { from_nfo:'读取已有资料',organize: '刮削并整理', rename_only: '只整理不刮削', in_place: '原地刮削' }
+// 任务阶段：扫描 → 下载 → 搬运 → 完成。搬运阶段由宿主写字节级进度，下载阶段由插件自己报。
+const STAGE_LABEL = { scan:'扫描收件目录', download:'下载资源', organize:'整理中', 'file:move':'搬运文件', 'file:copy':'复制文件', 'file:remove':'清理文件', files:'文件处理', done:'完成' }
+
+// 当前任务的进度细节：阶段 + 已处理计数 + 百分比。
+export function progressDetail(run) {
+  if (!run) return ''
+  const parts = []
+  const stage = STAGE_LABEL[run.stage] || run.stage
+  if (stage) parts.push(`阶段：${stage}`)
+  if (Number(run.total) > 0) parts.push(`已处理 ${run.done || 0}/${run.total}${run.failed ? ` · 失败 ${run.failed}` : ''}`)
+  if (Number(run.progress) > 0) parts.push(`进度 ${Math.round(run.progress)}%`)
+  return parts.join(' · ')
+}
 import { sourceName, sourcePlan } from '../lib/registry.js'
 import { directoryConfigs } from '../lib/advanced.js'
 
@@ -66,7 +79,9 @@ export function renderOverview(ui, store, ctx, app) {
         : el('span', { class: 'avo-badge' }, '未启用（仍会每 30 分钟定时扫描）')),
       dt(el, '当前任务'), el('dd', {}, active ? el('div', { class: 'avo-stack', style: { gap: '4px' } },
         el('span', {}, active.message || '运行中'),
-        el('div', { class: 'avo-bar' }, el('i', { style: { width: `${Math.round(active.progress || 0)}%` } }))) : '空闲'),
+        el('div', { class: 'avo-bar' }, el('i', { style: { width: `${Math.round(active.progress || 0)}%` } })),
+        el('div', { class: 'avo-hint' }, progressDetail(active)),
+        (active.logs || []).length ? el('div', { class: 'avo-hint' }, (active.logs || []).slice(-3).join(' / ')) : null) : '空闲'),
       dt(el, '上次整理'), el('dd', {}, last ? `${formatTime(last.at)} · 扫描 ${last.scanned} 个 · 成功 ${last.success} · 待处理 ${last.pending} · 跳过 ${last.skipped} · 用时 ${formatDuration(last.duration_ms)}` : '暂无')),
     el('div', { class: 'avo-row', style: { marginTop: '14px' } },
       button(watch ? '重新启用监听' : '启用目录监听', { icon: 'eye', disabled: !s.inbox && !s.directories?.length, onClick: async () => { await enableWatch(ctx, s); ui.toast('目录监听已启用', 'success'); await app.refresh() } }),

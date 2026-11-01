@@ -1,7 +1,7 @@
 import { processArtwork, HOST } from './enrich.js'
 // Candidates retain provenance and download independently: a broken preferred
 // source must not prevent a verified alternate source from supplying artwork.
-export async function prepareArtwork(ctx, env, meta, parsed, settings, staging, log) {
+export async function prepareArtwork(ctx, env, meta, parsed, settings, staging, log, onProgress) {
   const config=settings.image_selection || {}, byURL=new Map(), rejected=new Set(), options=settings.image_options || {}
   const candidates=field=>[...(meta.artwork_candidates?.[field] || []),...(meta[field]?[{url:meta[field],referer:meta.source_url || ''}]:[])].filter((v,i,a)=>/^https?:\/\//i.test(v.url || '') && a.findIndex(x=>x.url===v.url)===i).slice(0,16)
   async function get(item) {
@@ -10,6 +10,7 @@ export async function prepareArtwork(ctx, env, meta, parsed, settings, staging, 
     const work=(async()=>{
       const path=`${staging}/raw-${byURL.size}`
       try {
+        await onProgress?.('图片')
         const response=await env.get(item.url,{save_to:path,headers:item.referer?{Referer:[item.referer]}:{},max_bytes:32*1024*1024})
         if(response.status<200 || response.status>=300)throw new Error(`HTTP ${response.status}`)
         if ((config.reject_hashes || []).some(h=>String(h).toLowerCase()===String(response.sha256 || '').toLowerCase())) throw new Error('占位图片已过滤')
