@@ -101,7 +101,7 @@ test('纯本地模式：先写元数据再移动视频，字幕同名跟随，�
   const result = await run(ctx, {})
   assert.equal(result.success, 1)
   assert.equal(result.pending, 1)
-  const dir = '/mnt/lib/演员A/SSIS-001 测试标题'
+  const dir = '/mnt/lib/演员A/SSIS-001 - 测试标题'
   assert.deepEqual(moves.map(m => m[1]), [`${dir}/SSIS-001-C.nfo`, `${dir}/SSIS-001-C.zh.srt`, `${dir}/SSIS-001-C.mp4`])
   assert.match(writes[0].content, /<num>SSIS-001<\/num>/)
   assert.match(writes[0].content, /<tag>中文字幕<\/tag>/)
@@ -118,8 +118,8 @@ test('CD2 + STRM 模式：视频进规则源目录，元数据写到输出目录
   const result = await run(ctx, {})
   assert.equal(result.success, 1)
   assert.deepEqual(moves, [
-    [moves[0][0], '/strm/AV/演员A/SSIS-001 测试标题/SSIS-001.nfo'],
-    ['cd2:/115/inbox/SSIS-001.mkv', 'cd2:/115/AV/演员A/SSIS-001 测试标题/SSIS-001.mkv'],
+    [moves[0][0], '/strm/AV/演员A/SSIS-001 - 测试标题/SSIS-001.nfo'],
+    ['cd2:/115/inbox/SSIS-001.mkv', 'cd2:/115/AV/演员A/SSIS-001 - 测试标题/SSIS-001.mkv'],
   ])
   assert.deepEqual(posts, ['/api/rules/7/sync'])
 })
@@ -127,7 +127,7 @@ test('CD2 + STRM 模式：视频进规则源目录，元数据写到输出目录
 test('目标已存在时跳过不覆盖，文件留在待确认', async () => {
   const files = [{ name: 'SSIS-001.mp4', path: '/mnt/in/SSIS-001.mp4', size: 900 * MB, modified: '2020-01-01T00:00:00Z' }]
   const { ctx, moves, existing, storage } = fakeCtx({ settings: { ...baseSettings, mode: 'local', local_target: '/mnt/lib' }, files })
-  existing.add('/mnt/lib/演员A/SSIS-001 测试标题/SSIS-001.mp4')
+  existing.add('/mnt/lib/演员A/SSIS-001 - 测试标题/SSIS-001.mp4')
   const result = await run(ctx, {})
   assert.equal(result.skipped, 1)
   assert.equal(moves.length, 0)
@@ -143,7 +143,7 @@ test('待确认文件未变化时不重复刮削；人工指定番号后重新�
   await ctx.storage.set(manualKey('/mnt/in/unknown clip.mp4'), { number: 'ssis001', at: '2026-01-01T00:00:00Z' })
   const result = await run(ctx, {})
   assert.equal(result.success, 1)
-  assert.equal(moves.at(-1)[1], '/mnt/lib/演员A/SSIS-001 测试标题/SSIS-001.mp4')
+  assert.equal(moves.at(-1)[1], '/mnt/lib/演员A/SSIS-001 - 测试标题/SSIS-001.mp4')
   assert.equal(await ctx.storage.get(manualKey('/mnt/in/unknown clip.mp4')), null, '成功后清理控制键')
 })
 
@@ -192,7 +192,7 @@ test('模糊搜索：匹配度达到阈值且领先足够时自动整理', async
   const { ctx, moves, storage } = fakeCtx({ settings: localSettings, files: oneFile('[合集] 测试标题 特别篇.mp4') })
   const result = await run(ctx, {})
   assert.equal(result.success, 1)
-  assert.equal(moves.at(-1)[1], '/mnt/lib/演员A/SSIS-001 测试标题/SSIS-001.mp4')
+  assert.equal(moves.at(-1)[1], '/mnt/lib/演员A/SSIS-001 - 测试标题/SSIS-001.mp4')
   const item = storage.get('history')[0]
   assert.equal(item.method, 'fuzzy')
   assert.ok(item.score >= 85, String(item.score))
@@ -305,7 +305,7 @@ test('整理记录带完整详情：元数据、来源、文件路径、封面�
   assert.deepEqual(item.sources, ['fake'])
   assert.equal(item.method, 'exact')
   assert.equal(item.flags.chinese, true)
-  const dir = '/mnt/lib/演员甲/SSIS-001 测试标题'
+  const dir = '/mnt/lib/演员甲/SSIS-001 - 测试标题'
   assert.equal(item.files.nfo, `${dir}/SSIS-001-C.nfo`)
   assert.equal(item.files.poster, `${dir}/SSIS-001-C-poster.jpg`)
   assert.equal(item.files.extrafanart_count, 2)

@@ -3,7 +3,7 @@
 import { renderText } from './templates.js'
 const encoder = new TextEncoder()
 
-export const DEFAULT_DIR_TEMPLATE = '{actor}/{number} {title}'
+export const DEFAULT_DIR_TEMPLATE = '{actor}/{number} - {title}'
 export const DEFAULT_FILE_TEMPLATE = '{number}{suffix}'
 
 // Linux 文件名只禁止 "/" 和 NUL；按项目约定把 "/" 投影成全角 "／"，
