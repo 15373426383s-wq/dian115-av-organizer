@@ -51,10 +51,26 @@ function fakeCtx({ settings, files, rules = [] }) {
     cookiecloud: async () => ({ cookies: [] }),
     notify: async () => ({}),
     api: {
-      get: async path => { if (path === '/api/rules') return rules; throw new Error('unexpected ' + path) },
+      get: async path => {
+        if (path === '/api/rules') return rules
+        if (path === '/api/cd2/clouds') return { clouds: [{ name: '115', path: '/115' }] }
+        throw new Error('unexpected ' + path)
+      },
       post: async (path, body) => { posts.push(path); return {} },
     },
-    cd2: { call: async (method, options) => (method === 'list' ? files.filter(f => f.dir === options.path) : null) },
+    // 云端通道：stat 反映已落地文件（copy 后 existing 里有），用于回读确认。
+    cd2: {
+      call: async (method, options) => {
+        if (method === 'list') return files.filter(f => f.dir === options.path)
+        if (method === 'stat') {
+          // 云端 stat 用内部路径（无 cd2: 前缀），记录时可能是 cd2: 形式，两种都认。
+          const hit = existing.has(options.path) || existing.has('cd2:' + options.path)
+          return hit ? { path: options.path, name: options.path.split('/').pop() } : null
+        }
+        if (method === 'mkdir') return { path: options.path }
+        return null
+      },
+    },
     files: {
       call: async options => {
         switch (options.operation) {
@@ -63,6 +79,7 @@ function fakeCtx({ settings, files, rules = [] }) {
           case 'mkdir': dirs.push(options.path); return { path: options.path }
           case 'write': writes.push(options); return { size: options.content.length }
           case 'move': moves.push([options.path, options.destination]); existing.add(options.destination); return { backend: 'system' }
+          case 'copy': moves.push([options.path, options.destination]); existing.add(options.destination); return { backend: 'system' }
           case 'remove': return {}
           default: throw new Error('unexpected ' + options.operation)
         }

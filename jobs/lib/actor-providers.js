@@ -47,7 +47,12 @@ export async function databaseActor(ctx, names, source) {
       if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`)
       await ctx.api.post(`${HOST}/data/sqlite`,{source:temp}) // validate before publishing cache
       await ctx.files.call({operation:'move',path:temp,destination:path,overwrite:true})
-    } finally { await ctx.files.call({operation:'remove',path:temp}).catch(()=>{}) }
+    } catch (error) {
+      // 清理放在 catch 里而不是 finally：宿主在 finally 中执行 await 宿主调用会让脚本
+      // 执行器整体失败（任务只报 "script host call failed"），成功路径 move 后 temp 已不存在。
+      try { await ctx.files.call({operation:'remove',path:temp}) } catch (e) { }
+      throw error
+    }
   }
   const query = (table, equals, columns) => ctx.api.post(`${HOST}/data/sqlite`,{source:path,table,equals,columns,limit:20})
   // Actress database schema: Names.Alias -> Info.Name. Other SQLite datasets

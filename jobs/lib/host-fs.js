@@ -24,11 +24,26 @@ export async function cloudList(ctx) {
 }
 
 // 云盘列表按运行上下文缓存（一次运行内云盘不会变）。
+// 同时把云盘前缀放进模块级变量，供 looksCloud 做同步判定。
 const cloudCache = new WeakMap()
+let cloudPrefixes = []
 export async function cloudContext(ctx) {
   let entry = cloudCache.get(ctx)
-  if (!entry) { entry = { clouds: await cloudList(ctx) }; cloudCache.set(ctx, entry) }
+  if (!entry) {
+    entry = { clouds: await cloudList(ctx) }
+    cloudCache.set(ctx, entry)
+    cloudPrefixes = entry.clouds.map(cloud => '/' + cloud.name)
+  }
   return entry
+}
+
+// 路径是否落在云端（同步判定）。宿主对 CD2 云端操作无法计算字节级进度：
+// 在 progress 模式下会让脚本执行器整体失败，任务只报 "script host call failed"，
+// JS 的 catch 也来不及执行。所以只要任一端在云端，就必须关掉进度上报。
+export function looksCloud(path) {
+  const value = String(path || '')
+  if (isCd2Path(value)) return true
+  return cloudPrefixes.some(prefix => value.includes(prefix + '/') || value === prefix)
 }
 
 // 目标路径是否落在 CD2：cd2: 写法，或落在某个云盘的挂载路径内。
@@ -114,13 +129,16 @@ export async function rename(ctx, path, name) {
 }
 
 // 宿主在后台任务里执行 move/copy/remove 时会每秒把进度写进当前任务，
-// 任务队列里能看到「移动 a.mkv 1.2 GiB/4.0 GiB（1/3）」。progress 默认为开。
+// 任务队列里能看到「移动 a.mkv 1.2 GiB/4.0 GiB（1/3）」。
+// 但云端（CD2）操作无法计算已传字节，progress 会让脚本执行器直接失败，必须关掉。
 export async function move(ctx, path, destination, { overwrite = false, progress = true } = {}) {
-  return ctx.files.call({ operation: 'move', path, destination, overwrite, progress })
+  const want = progress && !looksCloud(path) && !looksCloud(destination)
+  return ctx.files.call({ operation: 'move', path, destination, overwrite, progress: want })
 }
 
 export async function copy(ctx, path, destination, { overwrite = false, progress = true } = {}) {
-  return ctx.files.call({ operation: 'copy', path, destination, overwrite, progress })
+  const want = progress && !looksCloud(path) && !looksCloud(destination)
+  return ctx.files.call({ operation: 'copy', path, destination, overwrite, progress: want })
 }
 
 // ---------- CD2 云端 ----------
@@ -153,7 +171,7 @@ export async function waitCloudFile(ctx, cloudPath, attempts = VERIFY_ATTEMPTS, 
 //          避免宿主「返回成功但云端没有」时把元数据悄悄丢掉。
 export async function putFile(ctx, stagedPath, destination, { overwrite = false, progress = true, verify = true, log } = {}) {
   const cloud = isCd2Path(destination)
-  const result = await ctx.files.call({ operation: 'copy', path: stagedPath, destination, overwrite, progress })
+  const result = await copy(ctx, stagedPath, destination, { overwrite, progress })
   if (!cloud || !verify) return { ok: true, verified: !cloud, result }
   const landed = await waitCloudFile(ctx, destination)
   if (!landed) {

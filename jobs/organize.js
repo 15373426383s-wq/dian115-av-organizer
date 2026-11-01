@@ -29,7 +29,7 @@ import { supplementalArtwork } from './lib/supplemental-art.js'
 import { quarantineFiles } from './lib/cleanup.js'
 import { prepareArtwork } from './lib/artwork.js'
 import { enrichMetadata, processArtwork, sendWebhooks, HOST } from './lib/enrich.js'
-import { isCloudTarget, isCloudSource, putFile, cloudStat, waitCloudFile, cloudTransfer, toCloudPath } from './lib/host-fs.js'
+import { isCloudTarget, isCloudSource, cloudContext, putFile, cloudStat, waitCloudFile, cloudTransfer, toCloudPath } from './lib/host-fs.js'
 
 const HISTORY_LIMIT = 500
 const PLOT_LIMIT = 16000
@@ -138,12 +138,12 @@ export async function recover(ctx, checkpoint) {
   let changed = false
   for (const item of items) {
     if (!item?.videoTarget || item.inPlace) continue
-    let arrived = await ctx.files.call({ operation: 'exists', path: item.videoTarget }).catch(() => false)
+    let arrived = await existsSafe(ctx, item.videoTarget, false)
     if (arrived && item.retained && !item.transfer_complete) {
       await ctx.task?.log?.(`中断的复制或链接尚未确认完成，请核对目标文件：${item.videoTarget}`)
       arrived = false
     }
-    if (arrived && !item.retained) arrived = !await ctx.files.call({ operation: 'exists', path: item.path }).catch(() => true)
+    if (arrived && !item.retained) arrived = !await existsSafe(ctx, item.path, true)
     if (arrived && item.expected_size !== undefined && item.transfer_mode !== 'symlink') {
       const target = await ctx.files.call({ operation: 'stat', path: item.videoTarget }).catch(() => null)
       arrived = !!target && !target.is_dir && Number(target.size) === Number(item.expected_size)
@@ -186,6 +186,7 @@ async function organizeOne(ctx, env, file, siblings, state, controls, settings, 
     // 只整理不刮削：只需要番号，元数据只有番号本身。
     result = await identifyNumberOnly(file, parent, settings, settings.manual_number || control.number || previous?.manual_number)
   } else {
+    await log('识别番号中')
     result = await identify(env, file, parent, settings, scrapeCache(ctx), {
       manualNumber: settings.manual_number || control.number || previous?.manual_number,
       log,
@@ -211,7 +212,12 @@ async function organizeOne(ctx, env, file, siblings, state, controls, settings, 
       if (result.librarySubtitles.some(item => !/\.(en|eng|ja|jpn)(?:\.|$)/i.test(item.name))) parsed.flags = { ...parsed.flags, chinese: true }
     } catch (e) { await log(`字幕库读取失败：${e.message || e}`); result.librarySubtitles = [] }
   }
-  const meta = settings.action_mode === 'rename_only' || settings.reuse_metadata ? applyMappings(editMetadata(result.meta,settings.manual_metadata), settings) : await enrichMetadata(ctx, applyMappings(result.meta, settings), parsed, file, settings, log)
+  const meta = settings.action_mode === 'rename_only' || settings.reuse_metadata ? applyMappings(editMetadata(result.meta,settings.manual_metadata), settings) : await (async () => {
+    await log('刮削资料与分辨率中')
+    const value = await enrichMetadata(ctx, applyMappings(result.meta, settings), parsed, file, settings, log)
+    await log('资料完成')
+    return value
+  })()
   if (result.method !== 'exact') await log(`${methodText(result)} → ${meta.number}`)
 
   budget.check()
@@ -249,15 +255,19 @@ async function placeFile(ctx, env, file, siblings, state, settings, runtime, { p
 async function transferVideo(ctx, file, plan, settings, log) {
   const mode = settings.transfer_mode || 'move'
   const overwrite = Boolean(settings.overwrite_video)
+  const targetCloud = await isCloudTarget(ctx, plan.videoTarget)
   if (mode !== 'move') {
-    await ctx.files.call({ operation: mode, path: file.path, destination: plan.videoTarget, overwrite })
+    // 链接类操作没有字节进度，progress 传 true 反而会让宿主报错。
+    await ctx.files.call({ operation: mode, path: file.path, destination: plan.videoTarget, overwrite, progress: false })
     return
   }
-  if (!await isCloudSource(ctx, file.path)) {
-    await ctx.files.call({ operation: 'move', path: file.path, destination: plan.videoTarget, overwrite })
+  // 目标是云端（STRM 模式下是 cd2:/...）时必须走云端搬运：源多半就在同一云盘里，
+  // 用系统 move 跨挂载搬大文件既慢又容易让宿主中途失败。
+  if (targetCloud || await isCloudSource(ctx, file.path)) {
+    await cloudTransfer(ctx, file.path, plan.videoTarget, { overwrite, log })
     return
   }
-  await cloudTransfer(ctx, file.path, plan.videoTarget, { overwrite, log })
+  await ctx.files.call({ operation: 'move', path: file.path, destination: plan.videoTarget, overwrite, progress: true })
 }
 
 async function finishFile(ctx, env, file, siblings, state, settings, runtime, { plan, parsed, meta, result, started, logs, log, transferComplete }) {
@@ -267,13 +277,14 @@ async function finishFile(ctx, env, file, siblings, state, settings, runtime, { 
     : await writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtime)
   const subtitles = []
   if (!plan.inPlace) {
-    for (const subtitle of subtitleTargets(file.name, siblings, plan, settings)) {
+    const subtitleList = subtitleTargets(file.name, siblings, plan, settings)
+    for (const subtitle of subtitleList) {
       try {
         const moveMode = settings.transfer_mode === 'move'
         if (moveMode && await isCloudSource(ctx, subtitle.source)) {
           await cloudTransfer(ctx, subtitle.source, subtitle.target, { overwrite: Boolean(settings.overwrite_video), log })
         } else {
-          await ctx.files.call({ operation: moveMode ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video) })
+          await ctx.files.call({ operation: moveMode ? 'move' : 'copy', path: subtitle.source, destination: subtitle.target, overwrite: Boolean(settings.overwrite_video), progress: false })
         }
         subtitles.push(subtitle.target)
       } catch (error) {
@@ -281,6 +292,7 @@ async function finishFile(ctx, env, file, siblings, state, settings, runtime, { 
       }
     }
     await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
+    await log(`搬运视频到 ${plan.videoTarget}`)
     await transferVideo(ctx, file, plan, settings, log)
     await transferComplete()
     if (settings.transfer_mode !== 'move') state.done[file.path] = signature(file)
@@ -296,7 +308,7 @@ async function finishFile(ctx, env, file, siblings, state, settings, runtime, { 
       const lang = item.name.match(/\.(zh|chs|cht|zh-cn|zh-tw|en|eng|ja|jpn)(?:\.|$)/i)?.[1] || 'chs'
       const target = joinPath(plan.subtitleDir, `${plan.base}.${lang}.${ext}`)
       if (await exists(ctx, target)) continue
-      await ctx.files.call({ operation: 'copy', path: item.path, destination: target, overwrite: false })
+      await ctx.files.call({ operation: 'copy', path: item.path, destination: target, overwrite: false, progress: false })
       subtitles.push(target)
     }
     } catch (e) { await log(`字幕库复制失败：${e.message || e}`) }
@@ -330,7 +342,6 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtim
   const cloudTarget = await isCloudTarget(ctx, plan.metaDir)
   const staging = `staging/${fileKey(plan.videoTarget)}`
   // 入口先抓住 files 引用：清理阶段直接用它，避免依赖作用域里的 ctx。
-  const filesApi = ctx.files
   const staged = []
   const files = {}
   const kept = []
@@ -341,7 +352,7 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtim
   if(settings.existing_files){
     for(const [target,name] of Object.entries(names)){
       const source=settings.existing_files[target], destination=joinPath(plan.metaDir,name)
-      if(source && source!==destination && await exists(ctx,source)){await ctx.files.call({operation:'mkdir',path:plan.metaDir});await ctx.files.call({operation:'copy',path:source,destination,overwrite:settings.overwrite_images!==false});files[target]=destination;wanted[target]=false}
+      if(source && source!==destination && await exists(ctx,source)){await ctx.files.call({operation:'mkdir',path:plan.metaDir});await ctx.files.call({operation:'copy',path:source,destination,overwrite:settings.overwrite_images!==false,progress:false});files[target]=destination;wanted[target]=false}
     }
   }
   for(const [target,name] of Object.entries(names)) {
@@ -401,7 +412,7 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtim
       const put = await putFile(ctx, item.path, destination, { overwrite, log })
       if (!put.ok) kept.push(item.name)
     } else {
-      await ctx.files.call({ operation: 'move', path: item.path, destination, overwrite })
+      await ctx.files.call({ operation: 'move', path: item.path, destination, overwrite, progress: false })
     }
   }
   // 校验元数据是否真的落到目标位置。
@@ -421,21 +432,22 @@ async function writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtim
         const put = await putFile(ctx, path, destination, { overwrite: settings.overwrite_images!==false, log })
         if (!put.ok) kept.push(basename(path))
       } else {
-        await ctx.files.call({ operation: 'move', path, destination, overwrite: settings.overwrite_images!==false })
+        await ctx.files.call({ operation: 'move', path, destination, overwrite: settings.overwrite_images!==false, progress: false })
       }
     }
     files.extrafanart = dir
     files.extrafanart_count = extrafanart.length
   }
+  // 清理暂存必须在 return 之前完成，不能放在 finally 里：
+  // 宿主在「return 触发的 finally」中执行 await 宿主调用会让脚本执行器整体失败
+  // （任务只报 "script host call failed"，JS 的 catch 和 throw 都不生效，日志也会在这里断掉）。
+  if (kept.length) await log(`以下文件未能写入目标，已保留在插件目录 ${staging}：${kept.join('、')}`).catch(() => {})
+  else try { await ctx.files.call({ operation: 'remove', path: staging, progress: false }) } catch (e) { }
   return { files, cover }
   } catch (error) {
-    // 真正的失败点先记下来：finally 里的清理如果也失败，会把原始错误盖掉。
+    // 真正的失败点先记下来，再保留暂存现场便于事后取回。
     await log(`写元数据失败：${String((error && (error.stack || error.message)) || error).split('\n').slice(0, 4).join(' | ')}`).catch(() => {})
     throw error
-  } finally {
-    // 没能落地的文件保留在插件目录里，便于事后取回；全部落地才清理暂存。
-    if (kept.length) await log(`以下文件未能写入目标，已保留在插件目录 ${staging}：${kept.join('、')}`).catch(() => {})
-    else try { await filesApi.call({ operation: 'remove', path: staging, progress: false }) } catch (e) { }
   }
 }
 
@@ -491,11 +503,27 @@ async function maybeMoveFailed(ctx, state, file, settings) {
 }
 
 async function moveFile(ctx, source, target, overwrite) {
-  return ctx.files.call({ operation: 'move', path: source, destination: target, overwrite })
+  return ctx.files.call({ operation: 'move', path: source, destination: target, overwrite, progress: false })
+}
+
+// 存在性判断。宿主对 CD2 挂载路径调 files.exists 会走 CloudDrive2 gRPC；路径不存在时宿主
+// 直接让脚本执行器整体失败（任务只报 "script host call failed"，JS 的 catch 根本来不及执行，
+// 日志也在这里断掉）。所以落在云盘挂载内的路径一律改用云端 stat。
+// fallback 供「查询失败时按存在处理」的调用方使用。
+async function existsSafe(ctx, path, fallback = false) {
+  const { clouds } = await cloudContext(ctx)
+  const cloud = toCloudPath(path, clouds)
+  if (cloud) {
+    try {
+      const info = await ctx.cd2.call('stat', { path: cloud })
+      return Boolean(info && (info.path || info.name))
+    } catch { return fallback }
+  }
+  return ctx.files.call({ operation: 'exists', path }).catch(() => fallback)
 }
 
 async function exists(ctx, path) {
-  return ctx.files.call({ operation: 'exists', path }).catch(() => false)
+  return existsSafe(ctx, path, false)
 }
 
 async function afterBatch(ctx, settings, destination) {
@@ -796,7 +824,7 @@ async function organizeExtra(ctx,file,parsed,state,settings,runtime,log) {
     await runtime.checkpoint()
     try{
       await ctx.files.call({operation:'mkdir',path:dir})
-      await ctx.files.call({operation:settings.transfer_mode,path:file.path,destination:target,overwrite:false})
+      await ctx.files.call({operation:settings.transfer_mode,path:file.path,destination:target,overwrite:false,progress:false})
       runtime.inflight.get(file.path).transfer_complete=true;await runtime.checkpoint()
       if(settings.transfer_mode!=='move')state.done[file.path]=signature(file)
       delete state.pending[file.path]
