@@ -2,7 +2,7 @@
   "schema_version": 3,
   "id": "local.av-organizer",
   "name": "番号整理",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；本机与 CD2 双后端目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步；搬运与下载进度实时可见。",
   "author": "swgzy",
   "requires": {
