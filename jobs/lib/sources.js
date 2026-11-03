@@ -1,5 +1,5 @@
 // 后台的来源执行层：按注册表准备 Cookie（含可选的年龄确认）并通过引擎执行来源规则。
-import { sourcePlan, searchPlan, sourcesForNumber } from '../../ui/lib/registry.js'
+import { sourcePlan, searchPlan, sourcesForNumber } from './shared/registry.js'
 import { runSource, runSearch } from './engine.js'
 
 export { sourcePlan, searchPlan, sourcesForNumber }

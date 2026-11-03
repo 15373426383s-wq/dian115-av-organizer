@@ -1,7 +1,7 @@
-import { templateVariables } from '../../ui/lib/naming.js'
+import { templateVariables } from './shared/naming.js'
 import { translateFields, applyDictionary, editMetadata } from './metadata.js'
 import { translateWithCache } from './translate-cache.js'
-import { renderText, evaluateCondition } from '../../ui/lib/templates.js'
+import { renderText, evaluateCondition } from './shared/templates.js'
 export const HOST = '/api/extensions/v3/local.av-organizer'
 
 export async function enrichMetadata(ctx, source, parsed, file, settings, log) {

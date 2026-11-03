@@ -9,7 +9,7 @@
 //   2. 写进挂载不等于写进云端。宿主对「系统命令写 CD2 挂载」可能返回成功但云端不可见，
 //      所以写入后必须回读云端确认，不能只看命令返回值。
 
-import { isCd2Path, cd2Internal, joinPath, dirname, basename } from '../../ui/lib/naming.js'
+import { isCd2Path, cd2Internal, joinPath, dirname, basename } from './shared/naming.js'
 
 // CD2 写入后的回读确认：云端是异步上传，给几次重试。
 const VERIFY_ATTEMPTS = 5

@@ -2,8 +2,8 @@ import {sourceRules,NUMBER_KINDS} from '../source-controls.js'
 import {pathControl, embyControls, aiControls, hostSelect, hostResource} from '../host-controls.js'
 import {renderConfigTools} from './config-tools.js'
 import { advancedSettings } from '../lib/advanced.js'
-import { HOST, processArtwork } from '../../jobs/lib/enrich.js'
-import { translationCacheStats, clearTranslationCache } from '../../jobs/lib/translate-cache.js'
+import { HOST, processArtwork } from '../lib/host-artwork.js'
+import { translationCacheStats, clearTranslationCache } from '../lib/host-translate-cache.js'
 
 // 本地翻译缓存可以随时查看与清空：换了语言、模型或发现译文过时就重来一遍。
 function clearTranslationButton(ui, ctx) {

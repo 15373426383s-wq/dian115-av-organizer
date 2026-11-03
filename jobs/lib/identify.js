@@ -5,8 +5,8 @@
 //   3. 关键词模糊搜索：完全没有番号 → 用清理后的标题线索搜索站点，按匹配度挑选。
 // 第 2、3 步只在"第一名 ≥ 阈值且领先第二名 ≥ 差距"时自动采用，否则留在待确认并写明匹配度。
 
-import { parseMedia, parseName, normalizeNumber, compileCleanRules } from '../../ui/lib/number.js'
-import { candidateScore, matchScore, usableQuery, decide } from '../../ui/lib/fuzzy.js'
+import { parseMedia, parseName, normalizeNumber, compileCleanRules } from './shared/number.js'
+import { candidateScore, matchScore, usableQuery, decide } from './shared/fuzzy.js'
 import { scrape } from './scrape.js'
 import { searchPlan, searchPlanItem } from './sources.js'
 

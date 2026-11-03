@@ -100,7 +100,7 @@ export function createUI(root) {
   let toastBox = null
   function toast(message, kind = 'info', timeout = 4200) {
     if (!toastBox || !toastBox.isConnected) { toastBox = el('div', { class: 'avo-toasts avo',dataset:{theme} }); doc.body.append(toastBox) }
-    const node = el('div', { class: `avo-toast ${kind}`, role: 'status' }, message)
+    const node = el('div', { class: `avo-toast avo-toast--${kind}`, role: 'status' }, message)
     toastBox.append(node)
     later(() => node.remove(), timeout)
   }

@@ -1,4 +1,4 @@
-import { sameNumber } from '../../ui/lib/number.js'
+import { sameNumber } from './shared/number.js'
 const HOST = '/api/extensions/v3/local.av-organizer'
 const FIELDS = ['title','original_title','plot','original_plot','actors','genres','studio','label','series','director','release_date','runtime','cover','poster','trailer','rating','votes','actor_photos','tags','resolution','media','category','translation_model']
 export function editMetadata(source, patch = {}) {

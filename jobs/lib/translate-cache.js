@@ -3,7 +3,7 @@
 // 既不重复消耗宿主 AI 额度，也让重复整理明显更快。
 // 缓存键里带上引擎、目标语言、模型、补充要求和原文，任何一项变化都会重新翻译，不会串味。
 
-import { fileKey } from '../../ui/lib/keys.js'
+import { fileKey } from './shared/keys.js'
 
 export const TRANSLATION_CACHE_TTL_MS = 90 * 24 * 3600 * 1000
 export const TRANSLATION_CACHE_LIMIT = 600

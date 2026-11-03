@@ -4,8 +4,8 @@
 
 import { identify, parseWithSettings } from './lib/identify.js'
 import { normalizeSettings } from './lib/plan.js'
-import { applyMappings } from '../ui/lib/mapping.js'
-import { validateSource } from '../ui/lib/registry.js'
+import { applyMappings } from './lib/shared/mapping.js'
+import { validateSource } from './lib/shared/registry.js'
 import { scrapeEnv } from './organize.js'
 
 export async function run(ctx, input = {}) {

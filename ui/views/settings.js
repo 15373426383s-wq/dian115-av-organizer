@@ -7,7 +7,7 @@ import { enableWatch } from './overview.js'
 import { renderSourcesCard } from './sources.js'
 import { renderAdvancedSettings } from './advanced-settings.js'
 import { validateAdvanced, directoryConfigs } from '../lib/advanced.js'
-import { normalizeSettings, resolveDestination } from '../../jobs/lib/plan.js'
+import { normalizeSettings, resolveDestination } from '../lib/host-plan.js'
 
 const SAMPLE = {
   meta: { number: 'SSIS-001', title: '新人NO.1STYLE 示例标题 完整版', actors: ['演员甲', '演员乙'], studio: 'S1 NO.1 STYLE', label: 'S1', series: '新人', director: '导演', release_date: '2021-02-19' },

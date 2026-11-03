@@ -1,9 +1,9 @@
 // 设置归一化、目标位置解析与单个文件的整理计划。不做任何 IO，便于测试。
 
-import { DEFAULT_DIR_TEMPLATE, DEFAULT_FILE_TEMPLATE, joinPath, renderTemplate, templateVariables, isWithin, isCd2Path, basename, dirname, sanitizeComponent } from '../../ui/lib/naming.js'
-import { numberSuffix, splitExtension } from '../../ui/lib/number.js'
-import { renderText } from '../../ui/lib/templates.js'
-import { advancedSettings } from '../../ui/lib/advanced.js'
+import { DEFAULT_DIR_TEMPLATE, DEFAULT_FILE_TEMPLATE, joinPath, renderTemplate, templateVariables, isWithin, isCd2Path, basename, dirname, sanitizeComponent } from './shared/naming.js'
+import { numberSuffix, splitExtension } from './shared/number.js'
+import { renderText } from './shared/templates.js'
+import { advancedSettings } from './shared/advanced.js'
 
 export function normalizeSettings(raw = {}) {
   const value = { ...raw }

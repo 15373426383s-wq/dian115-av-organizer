@@ -1,4 +1,4 @@
-import {parseName,sameNumber} from '../../ui/lib/number.js'
+import {parseName,sameNumber} from './shared/number.js'
 import { runSource } from './engine.js'
 const compact = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'')
 export function sameArtworkIdentity(text,meta) {

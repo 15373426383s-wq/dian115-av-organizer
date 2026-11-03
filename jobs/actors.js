@@ -1,8 +1,8 @@
 import { HOST } from './lib/enrich.js'
-import { fileKey } from '../ui/lib/keys.js'
+import { fileKey } from './lib/shared/keys.js'
 
 import { findActor } from './lib/actor-providers.js'
-import { advancedSettings } from '../ui/lib/advanced.js'
+import { advancedSettings } from './lib/shared/advanced.js'
 export { findActor, exactActorName } from './lib/actor-providers.js'
 export async function run(ctx, input = {}) {
   const settings = advancedSettings(await ctx.settings.get())

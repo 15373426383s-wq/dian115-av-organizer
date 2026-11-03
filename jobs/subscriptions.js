@@ -1,7 +1,7 @@
-import { SUBSCRIPTION_CONFIG, subscriptionConfig, validateSubscriptionConfig, extractNumbers, changeSubscriptions, readSubscriptions } from '../ui/lib/subscriptions.js'
+import { SUBSCRIPTION_CONFIG, subscriptionConfig, validateSubscriptionConfig, extractNumbers, changeSubscriptions, readSubscriptions } from './lib/shared/subscriptions.js'
 import { searchSubscriptions, prepareCandidate, submitCandidate, verifyReceipt, candidateIdentity, pendingIdentity } from './lib/subscription-sources.js'
 import { mapPool } from './lib/pool.js'
-import {accountSelector} from '../ui/lib/accounts.js'
+import {accountSelector} from './lib/shared/accounts.js'
 
 const stamp = () => new Date().toISOString()
 const activeReceipt = receipt => receipt && ['submitting', 'attention'].includes(receipt.status)

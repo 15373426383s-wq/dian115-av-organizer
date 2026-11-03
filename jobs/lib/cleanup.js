@@ -1,5 +1,5 @@
-import {splitExtension,isVideoFile} from '../../ui/lib/number.js'
-import {isWithin,joinPath} from '../../ui/lib/naming.js'
+import {splitExtension,isVideoFile} from './shared/number.js'
+import {isWithin,joinPath} from './shared/naming.js'
 export function cleanupCandidates(files,settings,now=Date.now()) {
   const config=settings.cleanup_source || {}, protect=new Set(String(config.protect_extensions || '').toLowerCase().split(/[,\s]+/))
   const whitelist=new Set(String(settings.extensions || 'mp4,mkv,avi,mov,wmv,ts,m2ts,m4v,webm,mpg,mpeg,iso,vob,strm').toLowerCase().split(/[,\s]+/).map(e=>e.replace(/^\./,'')))

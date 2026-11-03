@@ -1,8 +1,8 @@
 // 宿主内置整理失败事件（library_organize_fail）。开启"接手"后，能认出番号的视频
 // 被移进插件收件目录，由插件自己的流程从头整理；不会交回宿主整理。
 
-import { parseMedia, isVideoFile } from '../ui/lib/number.js'
-import { joinPath, basename, dirname, isWithin } from '../ui/lib/naming.js'
+import { parseMedia, isVideoFile } from './lib/shared/number.js'
+import { joinPath, basename, dirname, isWithin } from './lib/shared/naming.js'
 import { normalizeSettings } from './lib/plan.js'
 
 export async function run(ctx, event = {}) {

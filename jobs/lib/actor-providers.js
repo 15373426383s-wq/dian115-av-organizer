@@ -1,7 +1,7 @@
 // Small, independent adapters. Public indexes are fetched on demand; no portrait
 // collection or identity dataset is bundled.
 import { jsonPath } from './engine.js'
-import { fileKey } from '../../ui/lib/keys.js'
+import { fileKey } from './shared/keys.js'
 const HOST = '/api/extensions/v3/local.av-organizer'
 export const exactActorName = (a,b) => String(a || '').normalize('NFKC').trim().toLowerCase() === String(b || '').normalize('NFKC').trim().toLowerCase()
 const web = value => /^https?:\/\//i.test(String(value || '')) ? String(value) : ''

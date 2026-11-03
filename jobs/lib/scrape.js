@@ -3,11 +3,11 @@
 //   完整模式：查询所有适用来源（最多 max_sources 个），再按字段优先级合并。
 // 任何来源返回的番号都必须与查询一致（引擎内核对）。
 
-import { sameNumber } from '../../ui/lib/number.js'
-import { fieldPriority } from '../../ui/lib/registry.js'
+import { sameNumber } from './shared/number.js'
+import { fieldPriority } from './shared/registry.js'
 import { sourcesForNumber, runPlanItem } from './sources.js'
 import { mapPool } from './pool.js'
-import { fileKey } from '../../ui/lib/keys.js'
+import { fileKey } from './shared/keys.js'
 
 const CACHE_TTL_MS = 7 * 24 * 3600 * 1000
 const SCALAR_FIELDS = ['number', 'title', 'original_title', 'plot', 'release_date', 'runtime', 'studio', 'label', 'series', 'director', 'cover', 'poster', 'trailer', 'rating', 'votes', 'actor_photos', 'source_url']

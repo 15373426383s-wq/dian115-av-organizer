@@ -90,3 +90,32 @@
 
 **Q：刮削不到元数据？**
 确认该来源是否已启用并排在前面；部分来源需要配置 Cookie / 代理 / 年龄验证。
+
+---
+
+## 开发者须知
+
+### 页面与后台不能共享模块
+
+宿主会把「后台任务可达的文件」判定为后台源码，**不作为页面资源下发给浏览器**。
+所以 `ui/` 与 `jobs/` 必须各自自足：
+
+- `jobs/**` 不得 `import` `ui/**` 的文件。共用的纯函数工具在 `jobs/lib/shared/` 有一份副本，
+  它必须与 `ui/lib/` 下的原件逐字节一致，由 `test/boundary.test.mjs` 守护。
+- `ui/**` 不得 `import` `jobs/**` 的文件。页面要用的后台能力在 `ui/lib/host-*.js` 里自带一份
+  （设置归一化、图片处理、翻译缓存统计），页面与后台读写的是同一个插件 KV。
+
+一旦越界，被牵连的文件在浏览器里会 404，插件页直接打不开
+（`Failed to fetch dynamically imported module`）。改完请跑 `node --test test/boundary.test.mjs`。
+
+### 打包只取运行时文件
+
+`test/` 里的测试依赖 `node:test` 等 Node 内置模块，`docs/` 是文档，两者都不属于插件运行时。
+把它们打进包里会让宿主的「后台模块链接检查」失败，编译直接中断。
+编译前先剥出干净目录：
+
+```sh
+rm -rf ../pkg && mkdir -p ../pkg
+tar -cf - --exclude=./test --exclude=./docs --exclude=./.gitignore . | (cd ../pkg && tar -xf -)
+python ~/.workbuddy/dian115-tools/dian115.py build --src ../pkg
+```

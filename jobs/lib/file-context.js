@@ -1,4 +1,4 @@
-import { parseName, splitExtension, sameNumber } from '../../ui/lib/number.js'
+import { parseName, splitExtension, sameNumber } from './shared/number.js'
 
 // Interpret file relationships separately from the identifier parser.
 export function enrichFileContext(parsed, file, siblings = [], settings = {}) {

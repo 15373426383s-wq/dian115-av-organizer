@@ -1,6 +1,6 @@
-import {accountSelector, accountQuery, accountKey} from '../../ui/lib/accounts.js'
-import { extractNumbers } from '../../ui/lib/subscriptions.js'
-import { sameNumber } from '../../ui/lib/number.js'
+import {accountSelector, accountQuery, accountKey} from './shared/accounts.js'
+import { extractNumbers } from './shared/subscriptions.js'
+import { sameNumber } from './shared/number.js'
 import { torrentInfoBytes } from './torrent.js'
 
 const atPath = (value, path) => String(path || '').split('.').filter(Boolean).reduce((v, key) => v?.[key], value)
