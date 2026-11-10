@@ -144,7 +144,7 @@ export async function recover(ctx, checkpoint) {
       arrived = false
     }
     if (arrived && !item.retained) arrived = !await existsSafe(ctx, item.path, true)
-    if (arrived && item.expected_size !== undefined && item.transfer_mode !== 'symlink') {
+    if (arrived && Number(item.expected_size) > 0 && item.transfer_mode !== 'symlink') {
       const target = await ctx.files.call({ operation: 'stat', path: item.videoTarget }).catch(() => null)
       arrived = !!target && !target.is_dir && Number(target.size) === Number(item.expected_size)
     }
@@ -277,6 +277,11 @@ async function finishFile(ctx, env, file, siblings, state, settings, runtime, { 
     : await writeMetadata(ctx, env, meta, parsed, plan, settings, log, runtime)
   const subtitles = []
   if (!plan.inPlace) {
+    await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
+    await log(`搬运视频到 ${plan.videoTarget}`)
+    await transferVideo(ctx, file, plan, settings, log)
+    await transferComplete()
+    // 视频先落位、再搬字幕：视频搬运失败时字幕仍留在收件目录，下一轮重试还能找到它们。
     const subtitleList = subtitleTargets(file.name, siblings, plan, settings)
     for (const subtitle of subtitleList) {
       try {
@@ -291,10 +296,6 @@ async function finishFile(ctx, env, file, siblings, state, settings, runtime, { 
         await log(`字幕移动失败 ${basename(subtitle.source)}：${error.message || error}`)
       }
     }
-    await ctx.files.call({ operation: 'mkdir', path: plan.videoDir })
-    await log(`搬运视频到 ${plan.videoTarget}`)
-    await transferVideo(ctx, file, plan, settings, log)
-    await transferComplete()
     if (settings.transfer_mode !== 'move') state.done[file.path] = signature(file)
     if (settings.delete_empty && settings.transfer_mode === 'move') await removeEmptyParents(ctx, dirname(file.path), settings.inbox)
   } else {
@@ -755,6 +756,9 @@ function methodText(result) {
 export async function scrapeEnv(ctx, settings, extraDefs = []) {
   const bases = Object.fromEntries(sourcePlan(settings, extraDefs).map(item => [item.def.id, item.base]))
   const session = 'scrape'
+  // CookieCloud 只读、只导入本插件私有会话：域名由用户在设置里显式填写，留空即完全不读；
+  // 读到的 Cookie 不进日志、不落盘、不外发，也不回写 CookieCloud。
+  // 本机自用场景下这是"用户授权给自己插件"的能力；对外分发时该字段默认留空。
   if (settings.cookiecloud_domains.length) {
     try {
       const snapshot = await ctx.cookiecloud('read', { domains: settings.cookiecloud_domains })
@@ -786,7 +790,12 @@ export async function scrapeEnv(ctx, settings, extraDefs = []) {
           if (response.status < 500 && response.status !== 429) return response
           last = new Error(`HTTP ${response.status}`)
           if (attempt === retries) return response
-        } catch (e) { last = e }
+        } catch (e) {
+          // 宿主调用失败（带错误码）不在脚本里重试：交给任务级重试与 recover，
+          // 避免与宿主的重试叠加，导致外部写操作被重复执行。
+          if (e?.code) throw e
+          last = e
+        }
         if (attempt < retries) await ctx.sleep(Math.min(8000, 1000 * 2 ** attempt))
       }
       throw last

@@ -42,7 +42,11 @@ export async function enrichMetadata(ctx, source, parsed, file, settings, log) {
       } catch (e) { if (config.required) throw e; await log(`翻译失败，保留原文：${e.message || e}`) }
     }
   }
-  for (const key of (settings.metadata_options?.strict_on_source_error && !source.source_errors?.length ? [] : settings.required_fields || [])) if (!meta[key] || (Array.isArray(meta[key]) && !meta[key].length)) throw new Error(`必需元数据缺失：${key}`)
+  // 必需字段校验：只有「来源出错 且 未开启 strict_on_source_error」时才跳过，
+  // 否则（来源全部成功，或用户要求来源出错也严格）都必须通过校验。
+  const strictOnError = settings.metadata_options?.strict_on_source_error === true
+  const skipCheck = !strictOnError && (source.source_errors?.length || 0) > 0
+  for (const key of (skipCheck ? [] : settings.required_fields || [])) if (!meta[key] || (Array.isArray(meta[key]) && !meta[key].length)) throw new Error(`必需元数据缺失：${key}`)
   meta.display_title = renderText(settings.title_template || '{number} {title}', templateVariables(meta, parsed, { filename: file.name, sourcePath: file.path, maxActors: settings.max_actors }))
   return meta
 }

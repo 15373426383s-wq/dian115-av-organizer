@@ -170,10 +170,15 @@ export async function waitCloudFile(ctx, cloudPath, attempts = VERIFY_ATTEMPTS, 
 // CD2 目标：走系统命令进挂载，再用云端回读确认；确认不了就保留插件目录里的原件并报告原因，
 //          避免宿主「返回成功但云端没有」时把元数据悄悄丢掉。
 export async function putFile(ctx, stagedPath, destination, { overwrite = false, progress = true, verify = true, log } = {}) {
-  const cloud = isCd2Path(destination)
+  // 以前只认 cd2: 字面量，落进 CD2 挂载的普通绝对路径（/CloudNAS/...）不会回读确认。
+  // 现在统一换算成云盘内部路径再回读，mount 与 cd2: 两种写法都能覆盖。
+  let cloudPath = ''
+  if (verify && looksCloud(destination)) {
+    try { cloudPath = toCloudPath(destination, (await cloudContext(ctx)).clouds) } catch { cloudPath = '' }
+  }
   const result = await copy(ctx, stagedPath, destination, { overwrite, progress })
-  if (!cloud || !verify) return { ok: true, verified: !cloud, result }
-  const landed = await waitCloudFile(ctx, destination)
+  if (!cloudPath) return { ok: true, verified: true, result }
+  const landed = await waitCloudFile(ctx, cloudPath)
   if (!landed) {
     await log?.(`CD2 未确认落地：${destination}（宿主已接收写入，但云端读不到该文件）`)
     return { ok: false, verified: false, result, reason: 'CD2 未确认落地' }
@@ -188,22 +193,23 @@ export async function putFile(ctx, stagedPath, destination, { overwrite = false,
 // CD2 的 move 会返回「移动源身份已变化」，所以云端搬运用「复制 → 回读确认 → 删源」。
 export async function cloudTransfer(ctx, source, destination, { overwrite = false, progress = true, cloudPaths, log } = {}) {
   const clouds = cloudPaths || (await cloudContext(ctx)).clouds
-  const cloud = toCloudPath(destination, clouds) || toCloudPath(source, clouds)
-  const existing = cloud ? await cloudStat(ctx, destination) : null
+  const destCloud = toCloudPath(destination, clouds)
+  // 目标不在 CD2 内：按普通搬运处理。原实现会用源文件路径去云端回读，
+  // 结果「复制/移动其实成功，却报 CD2 复制未生效，源文件也不删」。
+  if (!destCloud) return { backend: 'system', outcome: await move(ctx, source, destination, { overwrite, progress }) }
+  const existing = await cloudStat(ctx, destination)
   if (existing) {
     if (!overwrite) throw new Error(`目标已存在：${destination}`)
     await remove(ctx, destination)
   }
   await copy(ctx, source, destination, { overwrite, progress })
-  if (cloud) {
-    const landed = await waitCloudFile(ctx, destination)
-    if (!landed) {
-      await log?.(`CD2 复制未确认落地：${destination}`)
-      throw new Error(`CD2 复制未生效：${destination}`)
-    }
+  const landed = await waitCloudFile(ctx, destination)
+  if (!landed) {
+    await log?.(`CD2 复制未确认落地：${destination}`)
+    throw new Error(`CD2 复制未生效：${destination}`)
   }
   await remove(ctx, source)
-  return { backend: cloud ? 'cd2' : 'system' }
+  return { backend: 'cd2' }
 }
 
 // 本机与 CD2 通用的搬运：CD2 目标走「复制→确认→删源」，本机目标直接 move。

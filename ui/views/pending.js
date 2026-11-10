@@ -43,6 +43,8 @@ export function renderPending(ui, store, ctx, app, state) {
       button('立即重试', { size: 'sm', icon: 'refresh', onClick: () => runFor([item.path], `已提交重试 ${item.name}`) }),
       store.settings.failed_folder ? button('移到失败目录', { size: 'sm', icon: 'move', onClick: async () => {
         if (!await ui.confirm('移到失败目录', `把 ${item.name} 移到 ${store.settings.failed_folder}？移走后不会再自动整理。`, '移动')) return
+        // 失败目录可能还没建过，宿主 move 不会自动创建父目录。
+        await ctx.files.call({ operation: 'mkdir', path: store.settings.failed_folder })
         await ctx.files.call({ operation: 'move', path: item.path, destination_dir: store.settings.failed_folder })
         ui.toast('已移到失败目录', 'success')
         await app.refresh()

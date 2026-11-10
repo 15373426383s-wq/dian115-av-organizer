@@ -227,7 +227,7 @@ async function request(env, source, url, options = {}) {
   const response = await env.get(url, init)
   // 年龄确认后可能继续出现人工问答，不能反复提交年龄表单或代答验证题。
   if (/\/doc\/driver-verify\b/i.test(response.url || '') && /name=["']userAnswers\[/i.test(response.body || '')) {
-    throw new Error(`${source.name} 仍要求人工答题验证，请在浏览器完成后通过 CookieCloud 或来源 Cookie 导入验证状态`)
+    throw new Error(`${source.name} 仍要求人工答题验证，请在浏览器完成后把来源 Cookie 填进本插件设置再重试`)
   }
   // JavBus 的 existmag 只是磁力筛选。只有用户已开启年龄确认时，才提交站点实际的确认表单。
   if (source.age_form && env.ageConfirm && !options.age_submitted) {
@@ -243,15 +243,15 @@ async function request(env, source, url, options = {}) {
   }
   if (response.status === 404 || response.status === 410) return { response, missing: true }
   if (/driver-verify|age[_-]?check|\/login\b|\/signin\b/i.test(response.url || '') && !/\.json/.test(url)) {
-    throw new Error(`${source.name} 需要年龄验证或登录：请在设置里开启“年龄确认”，或用 CookieCloud / Cookie 导入浏览器登录状态`)
+    throw new Error(`${source.name} 需要年龄验证或登录：请在设置里开启“年龄确认”，并把该来源的 Cookie 填进本插件设置`)
   }
   // 同一地址直接显示年龄确认页（如 MGStage 的“成人認証”）时，按页面标题识别。
   const pageTitle = ((response.body || '').match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || ''
   if (/成人認証|年齢認証|年齢確認|age verification|are you 18/i.test(pageTitle)) {
-    throw new Error(`${source.name} 需要年龄验证或登录：请在设置里开启“年龄确认”，或用 CookieCloud / Cookie 导入浏览器登录状态`)
+    throw new Error(`${source.name} 需要年龄验证或登录：请在设置里开启“年龄确认”，并把该来源的 Cookie 填进本插件设置`)
   }
   if (/メンテナンス|maintenance/i.test(pageTitle) && response.status >= 400) throw new Error(`${source.name} 站点维护中，暂时无法访问`)
-  if (isChallengePage(response)) throw new Error(`${source.name} 返回了防护验证页面，请导入浏览器 Cookie 或更换网络`)
+  if (isChallengePage(response)) throw new Error(`${source.name} 返回了防护验证页面，请把该来源的 Cookie 填进本插件设置，或更换网络`)
   if (/禁止了你的網路所在國家|prohibited in the country|not available in your (country|region)/i.test(response.body || '')) {
     throw new Error(`${source.name} 不允许当前网络所在地区访问，请配置代理（宿主代理域名或插件刮削代理）`)
   }

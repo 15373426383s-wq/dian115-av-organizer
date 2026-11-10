@@ -118,29 +118,23 @@ export function coverTile(ui, store, item, onClick) {
     el('div', { class: 'cap' }, el('b', {}, item.number), el('span', {}, item.title || (item.actors || []).join('、'))))
 }
 
-// CD2 的目录监听只认 CD2 内路径（/云盘名/...），传宿主挂载路径会报
-// 「not found "CloudNAS" under "/"」并始终收不到变化，所以绝对路径要先换算。
+// 目录监听按宿主契约只传挂载路径，不传 kind：宿主按 CD2 挂载前缀自行判定后端。
+// 配置里也不接受 cd2: 前缀，CD2 请填容器内可见的挂载路径（如 /mnt/cd2/115/未刮削）。
 export async function enableWatch(ctx, settings) {
   const configs = directoryConfigs(settings)
   for (const item of await ctx.watch.list()) if (item.job === 'organize' || item.id === 'inbox') await ctx.watch.remove(item.id)
   let clouds = []
   try { clouds = (await ctx.api.get('/api/cd2/clouds'))?.clouds || [] } catch (e) { clouds = [] }
   for (const config of configs) {
-    const inbox = config.inbox
-    let kind = 'local', path = inbox
-    if (inbox.startsWith('cd2:')) {
-      kind = 'cd2'; path = inbox.slice(4)
-    } else {
-      // 绝对路径落在 CD2 挂载内（如 /CloudNAS/CloudDrive/115open/未刮削）时换算成 /115open/未刮削。
-      const cloud = clouds.find(item => {
-        const key = '/' + item.name, at = inbox.indexOf(key)
-        return at >= 0 && (inbox.length === at + key.length || inbox[at + key.length] === '/')
-      })
-      if (cloud) { kind = 'cd2'; path = inbox.slice(inbox.indexOf('/' + cloud.name)) }
-    }
-    await ctx.watch.add({ id: config.directory_id || 'inbox', kind, path, job: 'organize',
+    const inbox = String(config.inbox || '')
+    if (inbox.startsWith('cd2:')) throw new Error(`收件目录请填容器内可见的挂载路径（例如 /mnt/cd2/115/未刮削），不要使用 cd2: 前缀：${inbox}`)
+    const inCloud = clouds.some(item => {
+      const key = '/' + item.name, at = inbox.indexOf(key)
+      return at >= 0 && (inbox.length === at + key.length || inbox[at + key.length] === '/')
+    })
+    await ctx.watch.add({ id: config.directory_id || 'inbox', path: inbox, job: 'organize',
       interval_seconds: Math.max(5, Number(config.watch_interval) || 30), realtime: config.watch_realtime !== false, recursive: true,
-      patterns: kind === 'cd2' ? undefined : VIDEO_EXTENSIONS.filter(ext => ext !== 'strm').map(ext => `*.${ext}`) })
+      patterns: inCloud ? undefined : VIDEO_EXTENSIONS.filter(ext => ext !== 'strm').map(ext => `*.${ext}`) })
   }
 }
 

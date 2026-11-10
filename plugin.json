@@ -2,12 +2,15 @@
   "schema_version": 3,
   "id": "local.av-organizer",
   "name": "番号整理",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "番号订阅与媒体整理：插件内定时订阅、磁力/ED2K 缓存、外部资源库与馒头增量搜索；本机与 CD2 双后端目录整理、FFP 分辨率、带本地缓存的 AI 翻译、多来源资料精选、图片裁剪与宿主图片标记水印、可配置 NFO、演员资料同步；搬运与下载进度实时可见。",
   "author": "swgzy",
   "requires": {
-    "api": "3.5"
+    "api": "3.9"
   },
+  "permissions": [
+    "telegram.bot"
+  ],
   "icon": "ui/icon.svg",
   "menu": {
     "title": "番号整理",
@@ -123,7 +126,7 @@
       "GET /api/cache/magnet/changes"
     ],
     "sites": [
-      "用户配置的 JavBus / JavDB / FC2 地址",
+      "用户配置的 JavBus / JavDB / FC2 地址（来源 Cookie 由用户手工填写，插件不读取 CookieCloud 或浏览器 Cookie）",
       "AVSOX、FreeJavBT、7mmtv、Airav.io 等内置元数据来源（可停用或修改地址）",
       "用户配置的数据库 HTTP/JSON 查询接口（地址和认证头在插件内填写）",
       "宿主已配置的馒头站点与下载器（通过宿主业务接口访问）",

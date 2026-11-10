@@ -196,7 +196,7 @@ export function renderSourcesCard(ui, store, ctx, draft, set) {
     el('div', { class: 'avo-fields', style: { margin: '16px 0' } },
       field('完整模式最多查询', text('max_sources', '6', 'number'), '每个番号最多查询几个来源'),
       field('刮削代理', text('proxy', 'http://192.168.1.2:7890'), '部分站点限制地区访问；也可以把站点域名加入宿主代理名单'),
-      field('从 CookieCloud 导入的域名', text('cookiecloud_domains', 'javbus.com,javdb.com'), '浏览器里通过验证或登录后同步过来'),
+      field('从 CookieCloud 读取的域名', text('cookiecloud_domains', 'javbus.com,javdb.com'), '只读：把宿主已同步的这些域 Cookie 导入本插件私有会话，不写回、不进日志。留空则完全不读 CookieCloud'),
       field('同时查询来源数', text('source_parallel', '4', 'number'), '一个番号同时查询几个来源（1–8）'),
       field('同站请求间隔（毫秒）', text('request_delay_ms', '1500', 'number'), '同一站点两次请求之间的最短间隔；不同站点互不等待'),
       field('模糊搜索优先来源',sourceChoices(ui,draft,{value:String(draft.search_sources||'javdb,javbus').split(/[,\s，]+/).filter(Boolean),searchOnly:true,onChange:value=>set('search_sources',value.join(','))}),'按顺序优先使用已启用的来源。')),
